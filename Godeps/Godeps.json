@@ -4,6 +4,11 @@
 	"GodepVersion": "v79",
 	"Deps": [
 		{
+			"ImportPath": "github.com/google/uuid",
+			"Comment": "0.2",
+			"Rev": "064e2069ce9c359c118179501254f67d7d37ba24"
+		},
+		{
 			"ImportPath": "github.com/gorilla/context",
 			"Comment": "v1.1-2-ga8d44e7",
 			"Rev": "a8d44e7d8e4d532b6a27a02dd82abb31cc1b01bd"

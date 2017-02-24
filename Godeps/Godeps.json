@@ -2,10 +2,12 @@
 	"ImportPath": "github.com/me-next/menext-backend",
 	"GoVersion": "go1.6",
 	"GodepVersion": "v79",
-	"Packages": [
-		"github.com/gorilla/mux"
-	],
 	"Deps": [
+		{
+			"ImportPath": "github.com/google/uuid",
+			"Comment": "0.2",
+			"Rev": "064e2069ce9c359c118179501254f67d7d37ba24"
+		},
 		{
 			"ImportPath": "github.com/gorilla/context",
 			"Comment": "v1.1-2-ga8d44e7",

@@ -2,12 +2,14 @@ package party
 
 import (
 	"fmt"
+	"sync"
 )
 
 // Party contains a queue and manages users
 type Party struct {
 	users     map[UserUUID]*User
 	ownerUUID UserUUID
+	mux       *sync.Mutex
 }
 
 // New party
@@ -15,6 +17,7 @@ func New(ownerUUID UserUUID, ownerName string) *Party {
 	p := Party{
 		users:     make(map[UserUUID]*User),
 		ownerUUID: ownerUUID,
+		mux:       &sync.Mutex{},
 	}
 
 	p.AddUser(ownerUUID, ownerName)
@@ -24,6 +27,10 @@ func New(ownerUUID UserUUID, ownerName string) *Party {
 
 // AddUser to the party, applies default permissions
 func (p *Party) AddUser(userUUID UserUUID, name string) error {
+
+	p.mux.Lock()
+	defer p.mux.Unlock()
+
 	user := NewUser(name)
 	if _, has := p.getUser(userUUID); has == nil {
 		return fmt.Errorf("party already contains user %s", userUUID)
@@ -36,6 +43,10 @@ func (p *Party) AddUser(userUUID UserUUID, name string) error {
 
 // RemoveUser from the party
 func (p *Party) RemoveUser(userUUID UserUUID) error {
+
+	p.mux.Lock()
+	defer p.mux.Unlock()
+
 	if userUUID == p.ownerUUID {
 		// TODO: should terminate instead...
 		return fmt.Errorf("removing owner from party")
@@ -77,6 +88,10 @@ func (p *Party) getUser(userUUID UserUUID) (*User, error) {
 
 // SetOwner of the party (there can be only one)
 func (p *Party) SetOwner(userUUID UserUUID) error {
+
+	p.mux.Lock()
+	defer p.mux.Unlock()
+
 	if _, has := p.getUser(userUUID); has == nil {
 		return fmt.Errorf("user %s not found", userUUID)
 	}

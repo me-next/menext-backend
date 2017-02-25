@@ -34,3 +34,13 @@ func TestPartyUserAdd(t *testing.T) {
 	// check that we can't remove owners
 	assert.NotNil(t, p.RemoveUser(ownerUUID))
 }
+
+func TestPartyCanRemove(t *testing.T) {
+	ownerUUID := party.UserUUID("1")
+	p := party.New(ownerUUID, "bob")
+
+	user := party.UserUUID("2")
+
+	assert.False(t, p.CanUserEndParty(user))
+	assert.True(t, p.CanUserEndParty(ownerUUID))
+}

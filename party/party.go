@@ -60,6 +60,14 @@ func (p *Party) RemoveUser(userUUID UserUUID) error {
 	return nil
 }
 
+// CanUserEndParty id'ing the user by uuid
+func (p *Party) CanUserEndParty(userUUID UserUUID) bool {
+	p.mux.Lock()
+	defer p.mux.Unlock()
+
+	return p.ownerUUID == userUUID
+}
+
 // canUserPerformAction id'd by string
 func (p *Party) canUserPerformAction(userUUID UserUUID, action string) (bool, error) {
 	user, err := p.getUser(userUUID)

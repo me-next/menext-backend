@@ -1,32 +1,77 @@
-package party
+package queue
 
 import (
+	"fmt"
 )
 
+type SongUUID string
+
+type Song struct {
+	Priority int
+}
+
+func NewSong(p int) Song{
+	return Song{Priority : p}
+}
+
 type Queue struct {
-	 songList []string
+	songList map[SongUUID]Song
 }
 
 func NewQueue() *Queue {
 	q := Queue{
-		songList:make([]string, 10),
+		songList: make(map[SongUUID]Song),
 	}
 	return &q
 }
 
-func (q *Queue) AddSong(songID string) error {
-	//TODO: check if song already added
-	q.songList = append(q.songList, songID)
-	return nil
+func (q *Queue) AddSong(songID SongUUID) error {
+	_, found := q.songList[songID]
+	if !found {
+		for _, s := range q.songList{
+			s.Priority ++
+		}
+		q.songList[songID] = NewSong(1)
+		return nil
+	}
+	return fmt.Errorf("song %s already in queue", songID)
 }
 
-func (q *Queue) RemoveSong(songID string) error {
-	filteredList := q.songList[:0]
-	for _, s := range q.songList {
-		if s != songID{
-				filteredList = append(filteredList, s)
-		}	
+func (q *Queue) RemoveSong(songID SongUUID) error {
+	_, found := q.songList[songID]
+	if !found {
+		return fmt.Errorf("song %s not in queue", songID)
 	}
-	q.songList = filteredList
+	q.decreaseAllAbove(songID)
+	delete(q.songList, songID)
 	return nil
+	
+}
+
+func(s Song) increasePriority(){
+	s.Priority++ 
+}
+
+func(s Song) decreasePriority(){
+	s.Priority--
+}
+
+func (q *Queue) increaseAllAbove(s SongUUID){
+	song := q.songList[s]
+	p := song.Priority
+	for _,i := range q.songList{
+		if p < i.Priority {
+			i.increasePriority()
+		}
+	}
+}
+
+func (q *Queue) decreaseAllAbove(s SongUUID){
+	song := q.songList[s]
+	p := song.Priority
+	for _,i := range q.songList{
+		if p < i.Priority {
+			i.decreasePriority()
+		}
+	}
 }

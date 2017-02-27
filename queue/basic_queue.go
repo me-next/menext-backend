@@ -18,6 +18,7 @@ func NewBasicQueue() Queue {
 		songList:     make(map[SongUUID]Song),
 		orderCounter: 0,
 	}
+
 	return &q
 }
 
@@ -38,7 +39,7 @@ func (q *BasicQueue) Add(song Song) error {
 // Remove by UUID from teh queue
 func (q *BasicQueue) Remove(songID SongUUID) error {
 	if _, found := q.songList[songID]; !found {
-		return fmt.Errorf("song %s not in queue", songID)
+		return fmt.Errorf("song not in queue")
 	}
 
 	delete(q.songList, songID)
@@ -60,8 +61,9 @@ func (q *BasicQueue) Pop() (Song, error) {
 		}
 	}
 
-	q.Remove(oldest.UUID)
-	return oldest, nil
+	err := q.Remove(oldest.UUID)
+
+	return oldest, err
 }
 
 // type cast checks that the BasicQueue implements Queue interface

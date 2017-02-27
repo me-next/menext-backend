@@ -10,7 +10,7 @@ type Song struct {
 }
 
 // Queue is the basic interface for a queue.
-// NOTE: the queue its self provides no threadsafety
+// NOTE: the queue itself provides no threadsafety.
 type Queue interface {
 	Add(Song) error
 	Remove(SongUUID) error

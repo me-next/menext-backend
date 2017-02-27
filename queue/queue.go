@@ -1,32 +1,18 @@
-package party
+package queue
 
-import (
-)
+// SongUUID is a universally unique identifier for a song
+type SongUUID string
 
-type Queue struct {
-	 songList []string
+// Song data includes priority
+type Song struct {
+	Priority int
+	UUID     SongUUID
 }
 
-func NewQueue() *Queue {
-	q := Queue{
-		songList:make([]string, 10),
-	}
-	return &q
-}
-
-func (q *Queue) AddSong(songID string) error {
-	//TODO: check if song already added
-	q.songList = append(q.songList, songID)
-	return nil
-}
-
-func (q *Queue) RemoveSong(songID string) error {
-	filteredList := q.songList[:0]
-	for _, s := range q.songList {
-		if s != songID{
-				filteredList = append(filteredList, s)
-		}	
-	}
-	q.songList = filteredList
-	return nil
+// Queue is the basic interface for a queue.
+// NOTE: the queue its self provides no threadsafety
+type Queue interface {
+	Add(Song) error
+	Remove(SongUUID) error
+	Pop() (Song, error)
 }

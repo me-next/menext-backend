@@ -1,5 +1,9 @@
 package party
 
+import (
+	"github.com/me-next/menext-backend/server/response"
+)
+
 // User at a party
 type User struct {
 	name        string
@@ -27,3 +31,10 @@ func (u User) CanPerform(action string) bool {
 func (u *User) SetPermission(action string, canPerform bool) {
 	u.permissions[action] = canPerform
 }
+
+// Data satisfies the serializable interface
+func (u User) Data() interface{} {
+	return u.permissions
+}
+
+var _ builder.Serializable = (*User)(nil)

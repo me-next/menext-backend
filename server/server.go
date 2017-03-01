@@ -173,12 +173,76 @@ func (s *Server) RemoveParty(w http.ResponseWriter, r *http.Request) {
 	// just exit with OK status code
 }
 
+// Pull all of the data for the client. This is the most frequent getter.
+// URL is /{pid}/{uid}/pull
+func (s *Server) Pull(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	uidStr, ufound := vars["uid"]
+	pidStr, pfound := vars["pid"]
+
+	if !ufound || !pfound {
+		urlerror(w)
+		return
+	}
+
+	// need to parse the pid to a uuid
+	pid, err := uuid.Parse(pidStr)
+	if err != nil {
+		errMsg := jsonError("bad party uuid %s", pid)
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write(errMsg)
+
+		return
+	}
+
+	p, err := s.pm.Party(pid)
+	if err != nil {
+		errMsg := jsonError("no such party %s", pid)
+		// when you write header after writting msg the header doesn't get written
+		// TODO: figure out why this happens
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write(errMsg)
+
+		return
+	}
+
+	// need to get specifics for the user
+	userData, err := p.PullUser(party.UserUUID(uidStr))
+	if err != nil {
+		errMsg := jsonError("no such user", pid)
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write(errMsg)
+
+		return
+	}
+
+	partyData := p.Data()
+
+	data := map[string]interface{}{
+		"party": partyData,
+		"user":  userData,
+	}
+
+	raw, err := json.Marshal(data)
+	if err != nil {
+		errMsg := jsonError("failed to serialize")
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write(errMsg)
+
+		return
+	}
+
+	// write and exit
+	w.Write(raw)
+}
+
 // GetAPI provides the server router. This is broken off from Start to make testing easier.
 func (s *Server) GetAPI() http.Handler {
 	router := mux.NewRouter()
 	router.Path("/hello").HandlerFunc(s.sayHello).Methods("GET")
 	router.Path("/createParty/{uid}/{uname}").HandlerFunc(s.CreateParty).Methods("GET")
 	router.Path("/{uid}/{pid}/removeParty").HandlerFunc(s.RemoveParty).Methods("GET")
+	router.Path("/{uid}/{pid}/pull").HandlerFunc(s.Pull).Methods("GET")
 	router.Path("/{pid}/joinParty/{uid}/{uname}").HandlerFunc(s.JoinParty).Methods("GET")
 
 	return router

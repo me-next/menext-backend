@@ -2,6 +2,7 @@ package party
 
 import (
 	"fmt"
+	"github.com/me-next/menext-backend/server/response"
 	"sync"
 )
 
@@ -109,3 +110,24 @@ func (p *Party) SetOwner(userUUID UserUUID) error {
 
 	return nil
 }
+
+// PullUser returns the user data in a serializable format
+func (p *Party) PullUser(userUUID UserUUID) (interface{}, error) {
+	p.mux.Lock()
+	defer p.mux.Unlock()
+
+	user, err := p.getUser(userUUID)
+	if err != nil {
+		return nil, err
+	}
+
+	return user.Data(), nil
+}
+
+// Data satisfies teh serializable interface
+func (p *Party) Data() interface{} {
+	// TODO: return queue state
+	return nil
+}
+
+var _ builder.Serializable = (*Party)(nil)

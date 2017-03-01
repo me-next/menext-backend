@@ -3,6 +3,7 @@ package server
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/me-next/menext-backend/party"
 	"net/http"
@@ -46,8 +47,9 @@ func (s *Server) CreateParty(w http.ResponseWriter, r *http.Request) {
 	pid, err := s.pm.CreateParty(party.UserUUID(uid), uname)
 	if err != nil {
 		data := jsonError("failed to create party")
-		w.Write(data)
 		w.WriteHeader(http.StatusInternalServerError)
+		w.Write(data)
+
 		return
 	}
 
@@ -59,20 +61,133 @@ func (s *Server) CreateParty(w http.ResponseWriter, r *http.Request) {
 	raw, err := json.Marshal(data)
 	if err != nil {
 		errMsg := jsonError("created party but failed to marshal %s", err.Error())
-		w.Write(errMsg)
 		w.WriteHeader(http.StatusInternalServerError)
+		w.Write(errMsg)
+
 		return
 	}
 
 	w.Write(raw)
 }
 
-// Start the server.
-func (s *Server) Start(port string) error {
+// JoinParty with owner uuid ownerName and party uuid
+// url is /{pid}/joinParty/{uuid}/{uname}
+func (s *Server) JoinParty(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	uidStr, ufound := vars["uid"]
+	pidStr, pfound := vars["pid"]
+	uname, nfound := vars["uname"]
+
+	if !ufound || !pfound || !nfound {
+		urlerror(w)
+		return
+	}
+
+	// need to parse the pid to a uuid
+	pid, err := uuid.Parse(pidStr)
+	if err != nil {
+		errMsg := jsonError("bad party uuid %s", pid)
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write(errMsg)
+
+		return
+	}
+
+	p, err := s.pm.Party(pid)
+	if err != nil {
+		errMsg := jsonError("no such party %s", pid)
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write(errMsg)
+
+		return
+	}
+
+	// verify that we can join the party
+	if err = p.AddUser(party.UserUUID(uidStr), uname); err != nil {
+		errMsg := jsonError("%s", err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write(errMsg)
+
+		return
+	}
+
+	// just exit with OK status code
+}
+
+// RemoveParty with owner uuid and party uuid
+// url is /{uid}/{pid}/removeParty
+func (s *Server) RemoveParty(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	uidStr, ufound := vars["uid"]
+	pidStr, pfound := vars["pid"]
+
+	if !ufound || !pfound {
+		urlerror(w)
+		return
+	}
+
+	// need to parse the pid to a uuid
+	pid, err := uuid.Parse(pidStr)
+	if err != nil {
+		errMsg := jsonError("bad party uuid %s", pid)
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write(errMsg)
+
+		return
+	}
+
+	p, err := s.pm.Party(pid)
+	if err != nil {
+		errMsg := jsonError("no such party %s", pid)
+		// when you write header after writting msg the header doesn't get written
+		// TODO: figure out why this happens
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write(errMsg)
+
+		return
+	}
+
+	// verify that we can finish the party
+	// NOTE: should we have some locking after this point
+	if canEnd := p.CanUserEndParty(party.UserUUID(uidStr)); !canEnd {
+		errMsg := jsonError("user can not end party")
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write(errMsg)
+
+		return
+	}
+
+	// assume we can end if we got here
+	err = s.pm.Remove(pid)
+	if err != nil {
+		// this is super duper hokey b/c we said we could end but now we can't
+		// suposedly no one else can hop in to finish this
+		// TODO: migth want to think about putting a diff status code / logging / panicing here
+		errMsg := jsonError("very very bad ending")
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write(errMsg)
+
+		return
+	}
+
+	// just exit with OK status code
+}
+
+// GetAPI provides the server router. This is broken off from Start to make testing easier.
+func (s *Server) GetAPI() http.Handler {
 	router := mux.NewRouter()
 	router.Path("/hello").HandlerFunc(s.sayHello).Methods("GET")
 	router.Path("/createParty/{uid}/{uname}").HandlerFunc(s.CreateParty).Methods("GET")
+	router.Path("/{uid}/{pid}/removeParty").HandlerFunc(s.RemoveParty).Methods("GET")
+	router.Path("/{pid}/joinParty/{uid}/{uname}").HandlerFunc(s.JoinParty).Methods("GET")
 
+	return router
+}
+
+// Start the server.
+func (s *Server) Start(port string) error {
+
+	router := s.GetAPI()
 	// shouldn't ever return
 	return http.ListenAndServe(port, router)
 }

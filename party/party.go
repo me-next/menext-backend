@@ -2,7 +2,6 @@ package party
 
 import (
 	"fmt"
-	"github.com/me-next/menext-backend/server/response"
 	"sync"
 )
 
@@ -11,6 +10,7 @@ type Party struct {
 	users     map[UserUUID]*User
 	ownerUUID UserUUID
 	mux       *sync.Mutex
+	changeID  uint64
 }
 
 // New party
@@ -111,23 +111,32 @@ func (p *Party) SetOwner(userUUID UserUUID) error {
 	return nil
 }
 
-// PullUser returns the user data in a serializable format
-func (p *Party) PullUser(userUUID UserUUID) (interface{}, error) {
+// updated increments the update tracker.
+// Should call this whenever there's an update everyone should know about.
+func (p *Party) setUpdated() {
+	p.changeID++
+}
+
+// Pull returns the user data in a serializable format.
+// NOTE: this checks for changes before checking uid.
+func (p *Party) Pull(userUUID UserUUID, changeID uint64) (interface{}, error) {
 	p.mux.Lock()
 	defer p.mux.Unlock()
 
+	// TODO: what if change ID is larger?
+	if p.changeID == changeID {
+		return nil, nil
+	}
+
 	user, err := p.getUser(userUUID)
+
 	if err != nil {
 		return nil, err
 	}
 
-	return user.Data(), nil
-}
+	data := make(map[string]interface{})
+	data["permissions"] = user.Data()
+	data["change"] = p.changeID
 
-// Data satisfies teh serializable interface
-func (p *Party) Data() interface{} {
-	// TODO: return queue state
-	return nil
+	return data, nil
 }
-
-var _ builder.Serializable = (*Party)(nil)

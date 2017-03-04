@@ -1,7 +1,6 @@
 package server_test
 
 import (
-	"github.com/google/uuid"
 	"github.com/me-next/menext-backend/server"
 	"github.com/stretchr/testify/assert"
 	"testing"
@@ -13,7 +12,7 @@ func TestManagerSimple(t *testing.T) {
 
 	pid, err := pm.CreateParty("1", "ted")
 	assert.Nil(t, err)
-	assert.NotEqual(t, pid, uuid.Nil)
+	assert.NotEqual(t, pid, "")
 
 	// lookup by party
 	p, err := pm.Party(pid)
@@ -32,7 +31,7 @@ func TestManagerSimple(t *testing.T) {
 	assert.Nil(t, err)
 
 	// bad lookup
-	baduuuid := uuid.New()
+	baduuuid := server.PartyUUID("1")
 	assert.NotEqual(t, baduuuid, pid)
 
 	badp, err := pm.Party(baduuuid)

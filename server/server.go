@@ -3,10 +3,10 @@ package server
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/me-next/menext-backend/party"
 	"net/http"
+	"strconv"
 )
 
 // Server for the backend.
@@ -55,7 +55,7 @@ func (s *Server) CreateParty(w http.ResponseWriter, r *http.Request) {
 
 	// write the json
 	data := map[string]string{
-		"pid": pid.String(),
+		"pid": string(pid),
 	}
 
 	raw, err := json.Marshal(data)
@@ -83,16 +83,7 @@ func (s *Server) JoinParty(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// need to parse the pid to a uuid
-	pid, err := uuid.Parse(pidStr)
-	if err != nil {
-		errMsg := jsonError("bad party uuid %s", pid)
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write(errMsg)
-
-		return
-	}
-
+	pid := PartyUUID(pidStr)
 	p, err := s.pm.Party(pid)
 	if err != nil {
 		errMsg := jsonError("no such party %s", pid)
@@ -127,14 +118,7 @@ func (s *Server) RemoveParty(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// need to parse the pid to a uuid
-	pid, err := uuid.Parse(pidStr)
-	if err != nil {
-		errMsg := jsonError("bad party uuid %s", pid)
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write(errMsg)
-
-		return
-	}
+	pid := PartyUUID(pidStr)
 
 	p, err := s.pm.Party(pid)
 	if err != nil {
@@ -173,27 +157,20 @@ func (s *Server) RemoveParty(w http.ResponseWriter, r *http.Request) {
 	// just exit with OK status code
 }
 
-// Pull all of the data for the client. This is the most frequent getter.
-// URL is /{pid}/{uid}/pull
+// Pull all of the data for the client if there is a recent change. This is the most frequent getter.
+// URL is /{pid}/{uid}/pull/{cid}
 func (s *Server) Pull(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	uidStr, ufound := vars["uid"]
 	pidStr, pfound := vars["pid"]
+	cidStr, cfound := vars["cid"]
 
-	if !ufound || !pfound {
+	if !ufound || !pfound || !cfound {
 		urlerror(w)
 		return
 	}
 
-	// need to parse the pid to a uuid
-	pid, err := uuid.Parse(pidStr)
-	if err != nil {
-		errMsg := jsonError("bad party uuid %s", pid)
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write(errMsg)
-
-		return
-	}
+	pid := PartyUUID(pidStr)
 
 	p, err := s.pm.Party(pid)
 	if err != nil {
@@ -206,8 +183,18 @@ func (s *Server) Pull(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// base 10, want a u64
+	cid, err := strconv.ParseUint(cidStr, 10, 64)
+	if err != nil {
+		errMsg := jsonError("failed to parse changeID")
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write(errMsg)
+
+		return
+	}
+
 	// need to get specifics for the user
-	userData, err := p.PullUser(party.UserUUID(uidStr))
+	data, err := p.Pull(party.UserUUID(uidStr), cid)
 	if err != nil {
 		errMsg := jsonError("no such user", pid)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -216,11 +203,9 @@ func (s *Server) Pull(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	partyData := p.Data()
-
-	data := map[string]interface{}{
-		"party": partyData,
-		"user":  userData,
+	// nil if nothing changed
+	if data == nil {
+		return
 	}
 
 	raw, err := json.Marshal(data)
@@ -242,7 +227,7 @@ func (s *Server) GetAPI() http.Handler {
 	router.Path("/hello").HandlerFunc(s.sayHello).Methods("GET")
 	router.Path("/createParty/{uid}/{uname}").HandlerFunc(s.CreateParty).Methods("GET")
 	router.Path("/{uid}/{pid}/removeParty").HandlerFunc(s.RemoveParty).Methods("GET")
-	router.Path("/{uid}/{pid}/pull").HandlerFunc(s.Pull).Methods("GET")
+	router.Path("/{uid}/{pid}/pull/{cid}").HandlerFunc(s.Pull).Methods("GET")
 	router.Path("/{pid}/joinParty/{uid}/{uname}").HandlerFunc(s.JoinParty).Methods("GET")
 
 	return router

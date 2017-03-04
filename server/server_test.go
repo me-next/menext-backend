@@ -107,8 +107,8 @@ func TestServerMultiUser(t *testing.T) {
 	assert.Equal(t, "", resp.Body.String())
 }
 
-func pull(ouid, pid string, s *server.Server, t *testing.T) map[string]interface{} {
-	resp := getHTTPResponse(fmt.Sprintf("/%s/%s/pull", ouid, pid), s)
+func pull(ouid, pid string, change uint64, s *server.Server, t *testing.T) map[string]interface{} {
+	resp := getHTTPResponse(fmt.Sprintf("/%s/%s/pull/%d", ouid, pid, change), s)
 	assert.Equal(t, http.StatusOK, resp.Code)
 	pullJson := resp.Body.String()
 
@@ -122,26 +122,22 @@ func pull(ouid, pid string, s *server.Server, t *testing.T) map[string]interface
 	return data
 }
 
-func TestServerPull(t *testing.T) {
+func TestServerPullUser(t *testing.T) {
 	s := server.New()
 
 	ouid := "1"
 	oname := "bob"
 	pid := createParty(ouid, oname, s, t)
 
-	data := pull(ouid, pid, s, t)
+	data := pull(ouid, pid, 1, s, t)
 	assert.NotEmpty(t, data)
 
-	permissions, found := data["user"]
+	permissions, found := data["permissions"]
+	fmt.Println(data)
 
 	assert.True(t, found)
 	assert.Contains(t, permissions, "default")
 	assert.Contains(t, permissions, "bad")
 	assert.NotContains(t, permissions, "moo")
 
-	party, found := data["party"]
-	assert.True(t, found)
-
-	// should fail this
-	assert.Contains(t, party, "queue")
 }

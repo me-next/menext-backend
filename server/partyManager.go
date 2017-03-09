@@ -79,13 +79,15 @@ func (pm *PartyManager) Remove(pid PartyUUID) error {
 	return nil
 }
 
+const partyUUIDSizeConst = 6
+
 // generateUUID with 6 letters / numbers
 // panics if can't create a uuid
 func (pm PartyManager) generateUUID() PartyUUID {
 	letterBytes := "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 	// try to generate a uuid
 	for j := 0; j < 10; j++ {
-		b := make([]byte, 6)
+		b := make([]byte, partyUUIDSizeConst)
 		for i := range b {
 			b[i] = letterBytes[rand.Intn(len(letterBytes))]
 		}

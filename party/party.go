@@ -119,12 +119,17 @@ func (p *Party) setUpdated() {
 
 // Pull returns the user data in a serializable format.
 // NOTE: this checks for changes before checking uid.
-func (p *Party) Pull(userUUID UserUUID, changeID uint64) (interface{}, error) {
+func (p *Party) Pull(userUUID UserUUID, clientChangeID uint64) (interface{}, error) {
 	p.mux.Lock()
 	defer p.mux.Unlock()
 
-	// TODO: what if change ID is larger?
-	if p.changeID == changeID {
+	// if the client's change is larger than our current change
+	if p.changeID < clientChangeID {
+		return nil, fmt.Errorf("bad pull id")
+	}
+
+	// up to date
+	if p.changeID == clientChangeID {
 		return nil, nil
 	}
 

@@ -196,7 +196,7 @@ func (s *Server) Pull(w http.ResponseWriter, r *http.Request) {
 	// need to get specifics for the user
 	data, err := p.Pull(party.UserUUID(uidStr), cid)
 	if err != nil {
-		errMsg := jsonError("no such user", pid)
+		errMsg := jsonError("err pulling from event:", err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write(errMsg)
 

@@ -10,6 +10,7 @@ import (
 	"testing"
 )
 
+// fires a request using the response recorder
 func getHTTPResponse(url string, s *server.Server) *httptest.ResponseRecorder {
 	recorder := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", url, nil)
@@ -18,6 +19,7 @@ func getHTTPResponse(url string, s *server.Server) *httptest.ResponseRecorder {
 	return recorder
 }
 
+// parses the PID out of a string
 func parsePID(str string) (string, error) {
 	data := make(map[string]string)
 
@@ -61,8 +63,8 @@ func TestServerSingleUser(t *testing.T) {
 	assert.NotEqual(t, "", resp.Body.String())
 }
 
-// TODO: check coverage
-
+// helper function for creating a party on the server
+// needs the owner name and id, plus the server and testing objects
 // parses the pid
 func createParty(ouid, oname string, s *server.Server, t *testing.T) string {
 	resp := getHTTPResponse(fmt.Sprintf("/createParty/%s/%s", ouid, oname), s)
@@ -107,16 +109,24 @@ func TestServerMultiUser(t *testing.T) {
 	assert.Equal(t, "", resp.Body.String())
 }
 
+// helper function to pull from the client
+// need to provide the uid, event id, change id plus the server and testing objects
+// expects that the pulls are good, and will test as such
 func pull(ouid, pid string, change uint64, s *server.Server, t *testing.T) map[string]interface{} {
 	resp := getHTTPResponse(fmt.Sprintf("/%s/%s/pull/%d", ouid, pid, change), s)
+
+	// check response
 	assert.Equal(t, http.StatusOK, resp.Code)
 	pullJson := resp.Body.String()
 
-	assert.Equal(t, resp.Code, http.StatusOK)
-
 	data := make(map[string]interface{})
-	err := json.Unmarshal([]byte(pullJson), &data)
+	if resp.Body.Len() == 0 {
+		// if the body is empty then return 0
+		return data
+	}
 
+	// should always be able to unmarshal correctly
+	err := json.Unmarshal([]byte(pullJson), &data)
 	assert.Nil(t, err)
 
 	return data
@@ -129,15 +139,13 @@ func TestServerPullUser(t *testing.T) {
 	oname := "bob"
 	pid := createParty(ouid, oname, s, t)
 
-	data := pull(ouid, pid, 1, s, t)
-	assert.NotEmpty(t, data)
+	// should be empty
+	data := pull(ouid, pid, 0, s, t)
+	assert.Empty(t, data)
 
-	permissions, found := data["permissions"]
-	fmt.Println(data)
+	// check a bad pull
+	resp := getHTTPResponse(fmt.Sprintf("/%s/%s/pull/%d", ouid, pid, 1), s)
+	assert.Equal(t, http.StatusInternalServerError, resp.Code)
 
-	assert.True(t, found)
-	assert.Contains(t, permissions, "default")
-	assert.Contains(t, permissions, "bad")
-	assert.NotContains(t, permissions, "moo")
-
+	assert.Contains(t, resp.Body.String(), "bad pull id")
 }

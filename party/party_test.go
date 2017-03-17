@@ -44,3 +44,28 @@ func TestPartyCanRemove(t *testing.T) {
 	assert.False(t, p.CanUserEndParty(user))
 	assert.True(t, p.CanUserEndParty(ownerUUID))
 }
+
+func TestPartyPull(t *testing.T) {
+	// NOTE: we need to get some actions that increase the change counter
+	// before we can properly test the pull
+	ownerUUID := party.UserUUID("1")
+	p := party.New(ownerUUID, "bob")
+
+	data, err := p.Pull(ownerUUID, 0)
+	assert.Nil(t, data)
+	assert.Nil(t, err)
+
+	// bad change ID, too high
+	data, err = p.Pull(ownerUUID, 2)
+	assert.Nil(t, data)
+	assert.NotNil(t, err)
+
+	baduid := party.UserUUID("2")
+	data, err = p.Pull(baduid, 0)
+	assert.Nil(t, data)
+	assert.Nil(t, err)
+
+	data, err = p.Pull(baduid, 1)
+	assert.Nil(t, data)
+	assert.NotNil(t, err)
+}

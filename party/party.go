@@ -10,6 +10,7 @@ type Party struct {
 	users     map[UserUUID]*User
 	ownerUUID UserUUID
 	mux       *sync.Mutex
+	changeID  uint64
 }
 
 // New party
@@ -108,4 +109,39 @@ func (p *Party) SetOwner(userUUID UserUUID) error {
 	p.ownerUUID = userUUID
 
 	return nil
+}
+
+// updated increments the update tracker.
+// Should call this whenever there's an update everyone should know about.
+func (p *Party) setUpdated() {
+	p.changeID++
+}
+
+// Pull returns the user data in a serializable format.
+// NOTE: this checks for changes before checking uid.
+func (p *Party) Pull(userUUID UserUUID, clientChangeID uint64) (interface{}, error) {
+	p.mux.Lock()
+	defer p.mux.Unlock()
+
+	// if the client's change is larger than our current change
+	if p.changeID < clientChangeID {
+		return nil, fmt.Errorf("bad pull id")
+	}
+
+	// up to date
+	if p.changeID == clientChangeID {
+		return nil, nil
+	}
+
+	user, err := p.getUser(userUUID)
+
+	if err != nil {
+		return nil, err
+	}
+
+	data := make(map[string]interface{})
+	data["permissions"] = user.Data()
+	data["change"] = p.changeID
+
+	return data, nil
 }

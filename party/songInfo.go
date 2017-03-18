@@ -26,7 +26,7 @@ const (
 )
 
 // ChangeSong changes the currently playing song.
-// Always start at 0:00 when changing
+// Always start at 0:00 when changing.
 func (np *NowPlaying) ChangeSong(song queue.SongUUID) {
 	np.nowPlaying = song
 	np.songPos = 0
@@ -34,7 +34,7 @@ func (np *NowPlaying) ChangeSong(song queue.SongUUID) {
 }
 
 // Seek to a position in the song.
-// TODO: error check on seek?
+// Client needs to make sure that this makes sense.
 func (np *NowPlaying) Seek(pos uint32) {
 	np.startTime = time.Now()
 	np.songPos = pos

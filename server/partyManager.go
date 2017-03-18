@@ -24,9 +24,9 @@ func NewPartyManager() *PartyManager {
 		mux:     &sync.RWMutex{},
 	}
 
-	// spin up the cleanup chron job
+	// spin up the cleanup thread in the background
 	go func(pm *PartyManager) {
-		ticker := time.NewTicker(chronPeriodHours * time.Hour)
+		ticker := time.NewTicker(cleanupPeriodHours * time.Hour)
 		for _ = range ticker.C {
 			pm.Cleanup(partyExpirationTime * time.Hour)
 		}
@@ -92,12 +92,12 @@ func (pm *PartyManager) Remove(pid PartyUUID) error {
 
 // consts for party cleanup
 const (
-	chronPeriodHours    = 6
+	cleanupPeriodHours  = 6
 	partyExpirationTime = 48
 )
 
 // Cleanup removes all events older than expirationTime.
-// It is called periodically by a chron job.
+// It is called by a background thread every <cleanupPeriodHours>.
 func (pm *PartyManager) Cleanup(expirationTime time.Duration) {
 	// Maps in go don't support concurrent access, and will even throw exceptions
 	// if they suspect there is concurrent access.

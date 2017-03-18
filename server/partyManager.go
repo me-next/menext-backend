@@ -5,6 +5,7 @@ import (
 	"github.com/me-next/menext-backend/party"
 	"math/rand"
 	"sync"
+	"time"
 )
 
 // PartyUUID uniquely identifies a party
@@ -18,10 +19,20 @@ type PartyManager struct {
 
 // NewPartyManager from nothing.
 func NewPartyManager() *PartyManager {
-	return &PartyManager{
+	pm := &PartyManager{
 		parties: make(map[PartyUUID]*party.Party),
 		mux:     &sync.RWMutex{},
 	}
+
+	// spin up the cleanup chron job
+	go func(pm *PartyManager) {
+		ticker := time.NewTicker(chronPeriodHours * time.Hour)
+		for _ = range ticker.C {
+			pm.Cleanup(partyExpirationTime * time.Hour)
+		}
+	}(pm)
+
+	return pm
 }
 
 // CreateParty with a unique identifier
@@ -77,6 +88,45 @@ func (pm *PartyManager) Remove(pid PartyUUID) error {
 	// NOTE: disbanding a party is the same as it not existing
 	delete(pm.parties, pid)
 	return nil
+}
+
+// consts for party cleanup
+const (
+	chronPeriodHours    = 6
+	partyExpirationTime = 48
+)
+
+// Cleanup removes all events older than expirationTime.
+// It is called periodically by a chron job.
+func (pm *PartyManager) Cleanup(expirationTime time.Duration) {
+	// Maps in go don't support concurrent access, and will even throw exceptions
+	// if they suspect there is concurrent access.
+	// Go doesn't support threadsafe deep copies of maps without iterating though the
+	// whole thing. We take the read-lock to find expired events, release the read-lock
+	// then delete expired events one-by-one to share the lock.
+
+	// block all write activities while looping through the map
+	pm.mux.RLock()
+	expiredParties := make(map[PartyUUID]struct{})
+
+	// find all expired parties and store the keys
+	for key, event := range pm.parties {
+		if event.TimeSinceLastChange().Minutes() > expirationTime.Minutes() {
+			expiredParties[key] = struct{}{}
+		}
+	}
+
+	// now let other people write
+	pm.mux.RUnlock()
+
+	// try to let other people through by giving up the WLock
+	for key := range expiredParties {
+		pm.mux.Lock()
+
+		delete(pm.parties, key)
+
+		pm.mux.Unlock()
+	}
 }
 
 const (

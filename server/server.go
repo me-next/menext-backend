@@ -60,6 +60,17 @@ func (s *Server) CreateParty(w http.ResponseWriter, r *http.Request) {
 
 	raw, err := json.Marshal(data)
 	if err != nil {
+
+		// cleanup party
+		rmvErr := s.pm.Remove(pid)
+		if rmvErr != nil {
+			errMsg := jsonError("failed to marshal (%s)  and failed to rmv (%s)", err.Error(), rmvErr.Error())
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write(errMsg)
+
+			return
+		}
+
 		errMsg := jsonError("created party but failed to marshal %s", err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write(errMsg)
@@ -147,7 +158,7 @@ func (s *Server) RemoveParty(w http.ResponseWriter, r *http.Request) {
 		// this is super duper hokey b/c we said we could end but now we can't
 		// suposedly no one else can hop in to finish this
 		// TODO: migth want to think about putting a diff status code / logging / panicing here
-		errMsg := jsonError("very very bad ending")
+		errMsg := jsonError("failed to remove party we should be allowed to end... very very bad")
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write(errMsg)
 

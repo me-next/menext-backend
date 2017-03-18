@@ -5,7 +5,11 @@ import (
 	"time"
 )
 
-// NowPlaying has info about the currently playing song
+// NowPlaying has info about the currently playing song.
+// The client can look at changes in start time to see if a seek occurred when they pull state.
+// The client can determine the current song position with the song start time,
+// song pos, and current server time.
+// The time diff gives a relative "time since seek'd to songPos"
 type NowPlaying struct {
 	nowPlaying queue.SongUUID
 
@@ -36,7 +40,7 @@ func (np *NowPlaying) Seek(pos uint32) {
 	np.songPos = pos
 }
 
-// Data returns {songStartTime, pos, currTime}
+// Data returns {songStartTime, pos, currTime}.
 func (np NowPlaying) Data() interface{} {
 	data := make(map[string]interface{})
 

@@ -111,7 +111,7 @@ func (pm *PartyManager) Cleanup(expirationTime time.Duration) {
 
 	// find all expired parties and store the keys
 	for key, event := range pm.parties {
-		if event.TimeSinceLastChange().Minutes() > expirationTime.Minutes() {
+		if event.TimeSinceLastChange().Seconds() > expirationTime.Seconds() {
 			expiredParties[key] = struct{}{}
 		}
 	}
@@ -121,11 +121,7 @@ func (pm *PartyManager) Cleanup(expirationTime time.Duration) {
 
 	// try to let other people through by giving up the WLock
 	for key := range expiredParties {
-		pm.mux.Lock()
-
-		delete(pm.parties, key)
-
-		pm.mux.Unlock()
+		pm.Remove(key)
 	}
 }
 

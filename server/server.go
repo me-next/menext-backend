@@ -241,6 +241,8 @@ func (s *Server) GetAPI() http.Handler {
 	router.Path("/{uid}/{pid}/pull/{cid}").HandlerFunc(s.Pull).Methods("GET")
 	router.Path("/{pid}/joinParty/{uid}/{uname}").HandlerFunc(s.JoinParty).Methods("GET")
 
+	// nowPlaying
+	router.Path("/{pid}/{uid}/seek/{pos}").HandlerFunc(s.Seek).Methods("GET")
 	return router
 }
 

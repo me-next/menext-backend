@@ -27,3 +27,22 @@ func (s *Server) Start(port string) error {
 	// shouldn't ever return
 	return http.ListenAndServe(port, router)
 }
+
+func (s *Server) Play(w http.ResponseWriter, r *http.Request) {
+// TODO: Implement
+}
+
+func (s *Server) Pause(w http.ResponseWriter, r *http.Request) {
+// TODO: Implement
+}
+
+func (s *Server) Volume(w http.ResponseWriter, r *http.Request) {
+// TODO: Implement
+}
+
+func (s *Server) Seek(w http.ResponseWriter, r *http.Request) {
+// TODO: Implement
+}
+
+
+

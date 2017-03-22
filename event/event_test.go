@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func TestPartyUserAdd(t *testing.T) {
+func TestEventUserAdd(t *testing.T) {
 	ownerUID := event.UserUID("1")
 	e := event.New(ownerUID, "fred")
 
@@ -33,23 +33,39 @@ func TestPartyUserAdd(t *testing.T) {
 
 	// check that we can't remove owners
 	assert.NotNil(t, e.RemoveUser(ownerUID))
-	
-	//check add play next
-	assert.Nil(t, e.AddPlayNext(user, "Song 1"))
-	
-	//check add suggestion
-	assert.Nil(t, e.AddsuggestionQ(user, "Song 1"))
-	
-	//can't double add songs
-	assert.NotNil(t, e.AddsuggestionQ(user, "Song 1"))
+}
 
-	// check remove play next
-	assert.Nil(t, e.RemovePlayNext(user, "Song 1"))
-	
-	// check remove suggestion
-	assert.Nil(t, e.RemovesuggestionQ(user, "Song 1"))
-	
-	// check that we can't remove  song that isn't there
-	assert.NotNil(t, e.RemovesuggestionQ(user, "Not Song"))
+func TestEventCanRemove(t *testing.T) {
+	ownerUID := event.UserUID("1")
+	e := event.New(ownerUID, "bob")
 
+	user := event.UserUID("2")
+
+	assert.False(t, e.CanUserEndEvent(user))
+	assert.True(t, e.CanUserEndEvent(ownerUID))
+}
+
+func TestEventPull(t *testing.T) {
+	// NOTE: we need to get some actions that increase the change counter
+	// before we can properly test the pull
+	ownerUID := event.UserUID("1")
+	e := event.New(ownerUID, "bob")
+
+	data, err := e.Pull(ownerUID, 0)
+	assert.Nil(t, data)
+	assert.Nil(t, err)
+
+	// bad change ID, too high
+	data, err = e.Pull(ownerUID, 2)
+	assert.Nil(t, data)
+	assert.NotNil(t, err)
+
+	baduid := event.UserUID("2")
+	data, err = e.Pull(baduid, 0)
+	assert.Nil(t, data)
+	assert.Nil(t, err)
+
+	data, err = e.Pull(baduid, 1)
+	assert.Nil(t, data)
+	assert.NotNil(t, err)
 }

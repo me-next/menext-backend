@@ -1,9 +1,6 @@
 package event
 
-import (
-	"net/http"
-)
-// User at a party
+// User at a event
 type User struct {
 	name        string
 	permissions map[string]bool
@@ -31,18 +28,7 @@ func (u *User) SetPermission(action string, canPerform bool) {
 	u.permissions[action] = canPerform
 }
 
-func (s *Server) CreateEvent(w http.ResponseWriter, r *http.Request) {
-// TODO: Implement
-}
-
-func (s *Server) EndEvent(w http.ResponseWriter, r *http.Request) {
-// TODO: Implement
-}
-
-func (u *User) JoinEvent(w http.ResponseWriter, r *http.Request) {
-// TODO: Implement
-}
-
-func (u *User) LeaveEvent(w http.ResponseWriter, r *http.Request) {
-// TODO: Implement
+// Data satisfies the serializable interface
+func (u User) Data() interface{} {
+	return u.permissions
 }

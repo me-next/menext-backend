@@ -32,3 +32,8 @@ func (u *User) SetPermission(action string, canPerform bool) {
 func (u User) Data() interface{} {
 	return u.permissions
 }
+
+// user permissions
+const (
+	UserCanSeekPermission = "Seek"
+)

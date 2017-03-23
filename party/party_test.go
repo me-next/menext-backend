@@ -69,3 +69,41 @@ func TestPartyPull(t *testing.T) {
 	assert.Nil(t, data)
 	assert.NotNil(t, err)
 }
+
+func TestPartySeek(t *testing.T) {
+	ownerUUID := party.UserUUID("1")
+	p := party.New(ownerUUID, "bob")
+
+	// parses out the position
+	getPos := func(p *party.Party, uid party.UserUUID, cid uint64) (uint32, error) {
+		raw, err := p.Pull(uid, cid)
+		if err != nil {
+			return 0, err
+		}
+
+		pullData := raw.(map[string]interface{})
+		changeData := pullData[party.PullPlayingKey].(map[string]interface{})
+
+		pos := changeData[party.KSongPosition].(uint32)
+		return pos, nil
+	}
+
+	// try a valid seek
+	var seekTo uint32 = 5
+	err := p.Seek(ownerUUID, seekTo)
+	assert.Nil(t, err)
+
+	// fetch the pos, check that it matches
+	pos, err := getPos(p, ownerUUID, 0)
+	assert.Nil(t, err)
+	assert.Equal(t, pos, seekTo)
+
+	// we already know that seek works, test bad gets
+	err = p.Seek(party.UserUUID("2"), 1)
+	assert.NotNil(t, err)
+
+	// check that the changeID didn't move
+	data, err := p.Pull(ownerUUID, 1)
+	assert.Nil(t, err)
+	assert.Empty(t, data)
+}

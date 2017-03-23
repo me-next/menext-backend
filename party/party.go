@@ -3,22 +3,25 @@ package party
 import (
 	"fmt"
 	"sync"
+	"time"
 )
 
 // Party contains a queue and manages users
 type Party struct {
-	users     map[UserUUID]*User
-	ownerUUID UserUUID
-	mux       *sync.Mutex
-	changeID  uint64
+	users       map[UserUUID]*User
+	ownerUUID   UserUUID
+	mux         *sync.Mutex
+	changeID    uint64
+	lastChangeT time.Time
 }
 
 // New party
 func New(ownerUUID UserUUID, ownerName string) *Party {
 	p := Party{
-		users:     make(map[UserUUID]*User),
-		ownerUUID: ownerUUID,
-		mux:       &sync.Mutex{},
+		users:       make(map[UserUUID]*User),
+		ownerUUID:   ownerUUID,
+		mux:         &sync.Mutex{},
+		lastChangeT: time.Now(),
 	}
 
 	p.AddUser(ownerUUID, ownerName)
@@ -115,6 +118,15 @@ func (p *Party) SetOwner(userUUID UserUUID) error {
 // Should call this whenever there's an update everyone should know about.
 func (p *Party) setUpdated() {
 	p.changeID++
+	p.lastChangeT = time.Now()
+}
+
+// TimeSinceLastChange in duration
+func (p *Party) TimeSinceLastChange() time.Duration {
+	p.mux.Lock()
+	defer p.mux.Unlock()
+
+	return time.Since(p.lastChangeT)
 }
 
 // Pull returns the user data in a serializable format.

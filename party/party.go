@@ -3,6 +3,7 @@ package party
 import (
 	"fmt"
 	"sync"
+	"time"
 )
 
 // Party contains a queue and manages users
@@ -13,6 +14,8 @@ type Party struct {
 	changeID  uint64
 
 	nowPlaying NowPlaying
+  
+  lastChangeT time.Time
 }
 
 // New party
@@ -22,6 +25,8 @@ func New(ownerUUID UserUUID, ownerName string) *Party {
 		ownerUUID:  ownerUUID,
 		mux:        &sync.Mutex{},
 		nowPlaying: NowPlaying{},
+    
+    lastChangeT: time.Now(),
 	}
 
 	p.AddUser(ownerUUID, ownerName)
@@ -143,6 +148,15 @@ func (p *Party) Seek(uid UserUUID, position uint32) error {
 // Should call this whenever there's an update everyone should know about.
 func (p *Party) setUpdated() {
 	p.changeID++
+	p.lastChangeT = time.Now()
+}
+
+// TimeSinceLastChange in duration
+func (p *Party) TimeSinceLastChange() time.Duration {
+	p.mux.Lock()
+	defer p.mux.Unlock()
+
+	return time.Since(p.lastChangeT)
 }
 
 const (

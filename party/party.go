@@ -3,6 +3,7 @@ package party
 import (
 	"fmt"
 	"sync"
+	"time"
 )
 
 // Party contains a queue and manages users
@@ -14,14 +15,20 @@ type Party struct {
 
 	// queues
 	suggestionQueue VotableQueue
+	nowPlaying      NowPlaying
+
+	lastChangeT time.Time
 }
 
 // New party
 func New(ownerUUID UserUUID, ownerName string) *Party {
 	p := Party{
-		users:     make(map[UserUUID]*User),
-		ownerUUID: ownerUUID,
-		mux:       &sync.Mutex{},
+		users:      make(map[UserUUID]*User),
+		ownerUUID:  ownerUUID,
+		mux:        &sync.Mutex{},
+		nowPlaying: NowPlaying{},
+
+		lastChangeT: time.Now(),
 	}
 
 	p.AddUser(ownerUUID, ownerName)
@@ -87,6 +94,8 @@ func (p *Party) setDefaultPermission(user *User) {
 	// TODO: replace with real permissions
 	user.SetPermission("default", true)
 	user.SetPermission("bad", false)
+
+	user.SetPermission(UserCanSeekPermission, true)
 }
 
 func (p *Party) getUser(userUUID UserUUID) (*User, error) {
@@ -114,11 +123,49 @@ func (p *Party) SetOwner(userUUID UserUUID) error {
 	return nil
 }
 
+// Seek to a position in the song.
+// Error if there isn't anything playing or the user doesn't
+// have permission.
+func (p *Party) Seek(uid UserUUID, position uint32) error {
+	p.mux.Lock()
+	defer p.mux.Unlock()
+
+	// check if teh user can seek
+	can, err := p.canUserPerformAction(uid, UserCanSeekPermission)
+	if err != nil {
+		return err
+	}
+
+	if !can {
+		return fmt.Errorf("user can not seek")
+	}
+
+	p.nowPlaying.Seek(position)
+	p.setUpdated()
+
+	return nil
+}
+
 // updated increments the update tracker.
 // Should call this whenever there's an update everyone should know about.
 func (p *Party) setUpdated() {
 	p.changeID++
+	p.lastChangeT = time.Now()
 }
+
+// TimeSinceLastChange in duration
+func (p *Party) TimeSinceLastChange() time.Duration {
+	p.mux.Lock()
+	defer p.mux.Unlock()
+
+	return time.Since(p.lastChangeT)
+}
+
+// consts for pull
+const (
+	PullChangeKey  = "change"
+	PullPlayingKey = "playing"
+)
 
 // Pull returns the user data in a serializable format.
 // NOTE: this checks for changes before checking uid.
@@ -144,7 +191,8 @@ func (p *Party) Pull(userUUID UserUUID, clientChangeID uint64) (interface{}, err
 
 	data := make(map[string]interface{})
 	data["permissions"] = user.Data()
-	data["change"] = p.changeID
+	data[PullChangeKey] = p.changeID
+	data[PullPlayingKey] = p.nowPlaying.Data()
 
 	return data, nil
 }

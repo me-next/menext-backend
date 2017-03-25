@@ -11,6 +11,9 @@ type Party struct {
 	ownerUUID UserUUID
 	mux       *sync.Mutex
 	changeID  uint64
+
+	// queues
+	suggestionQueue VotableQueue
 }
 
 // New party

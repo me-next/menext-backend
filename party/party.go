@@ -123,6 +123,48 @@ func (p *Party) SetOwner(userUUID UserUUID) error {
 	return nil
 }
 
+// SuggestionUpvote with user ID, song ID
+func (p *Party) SuggestionUpvote(uid UserUUID, sid SongUID) error {
+	p.mux.Lock()
+	defer p.mux.Unlock()
+
+	if can, err := p.canUserPerformAction(uid, UserCanUpvoteSuggestionPermisison); err != nil {
+		return err
+	} else if !can {
+		return fmt.Errorf("user can't upvote")
+	}
+
+	return p.suggestionQueue.Upvote(uid, sid)
+}
+
+// SuggestionDownvote with user ID, song ID
+func (p *Party) SuggestionDownvote(uid UserUUID, sid SongUID) error {
+	p.mux.Lock()
+	defer p.mux.Unlock()
+
+	if can, err := p.canUserPerformAction(uid, UserCanDownvoteSuggestionPermisison); err != nil {
+		return err
+	} else if !can {
+		return fmt.Errorf("user can't downvote")
+	}
+
+	return p.suggestionQueue.Downvote(uid, sid)
+}
+
+// Suggest song to suggestion queue
+func (p *Party) Suggest(uid UserUUID, sid SongUID) error {
+	p.mux.Lock()
+	defer p.mux.Unlock()
+
+	if can, err := p.canUserPerformAction(uid, UserCanSuggestSongPermission); err != nil {
+		return err
+	} else if !can {
+		return fmt.Errorf("user can't suggest")
+	}
+
+	return p.suggestionQueue.AddSong(uid, sid)
+}
+
 // Seek to a position in the song.
 // Error if there isn't anything playing or the user doesn't
 // have permission.
@@ -165,6 +207,7 @@ func (p *Party) TimeSinceLastChange() time.Duration {
 const (
 	PullChangeKey  = "change"
 	PullPlayingKey = "playing"
+	PullSuggestKeg = "suggest"
 )
 
 // Pull returns the user data in a serializable format.
@@ -193,6 +236,7 @@ func (p *Party) Pull(userUUID UserUUID, clientChangeID uint64) (interface{}, err
 	data["permissions"] = user.Data()
 	data[PullChangeKey] = p.changeID
 	data[PullPlayingKey] = p.nowPlaying.Data()
+	data[PullSuggestKeg] = p.suggestionQueue.Pull(userUUID)
 
 	return data, nil
 }

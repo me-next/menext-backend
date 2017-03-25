@@ -69,7 +69,7 @@ func (q *VotableQueue) Pull(uid UserUUID) interface{} {
 		b := arr[j]
 
 		if a.Sum() == b.Sum() {
-			return a.posAdded < b.posAdded
+			return a.posAdded > b.posAdded
 		}
 
 		return a.Sum() < b.Sum()

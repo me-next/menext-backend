@@ -23,10 +23,11 @@ type Party struct {
 // New party
 func New(ownerUUID UserUUID, ownerName string) *Party {
 	p := Party{
-		users:      make(map[UserUUID]*User),
-		ownerUUID:  ownerUUID,
-		mux:        &sync.Mutex{},
-		nowPlaying: NowPlaying{},
+		users:           make(map[UserUUID]*User),
+		ownerUUID:       ownerUUID,
+		mux:             &sync.Mutex{},
+		nowPlaying:      NowPlaying{},
+		suggestionQueue: NewVotableQueue(),
 
 		lastChangeT: time.Now(),
 	}
@@ -96,6 +97,10 @@ func (p *Party) setDefaultPermission(user *User) {
 	user.SetPermission("bad", false)
 
 	user.SetPermission(UserCanSeekPermission, true)
+	user.SetPermission(UserCanSuggestSongPermission, true)
+	user.SetPermission(UserCanUpvoteSuggestionPermisison, true)
+	user.SetPermission(UserCanDownvoteSuggestionPermisison, true)
+
 }
 
 func (p *Party) getUser(userUUID UserUUID) (*User, error) {
@@ -134,7 +139,13 @@ func (p *Party) SuggestionUpvote(uid UserUUID, sid SongUID) error {
 		return fmt.Errorf("user can't upvote")
 	}
 
-	return p.suggestionQueue.Upvote(uid, sid)
+	err := p.suggestionQueue.Upvote(uid, sid)
+	if err != nil {
+		return err
+	}
+
+	p.setUpdated()
+	return nil
 }
 
 // SuggestionDownvote with user ID, song ID
@@ -148,7 +159,13 @@ func (p *Party) SuggestionDownvote(uid UserUUID, sid SongUID) error {
 		return fmt.Errorf("user can't downvote")
 	}
 
-	return p.suggestionQueue.Downvote(uid, sid)
+	err := p.suggestionQueue.Downvote(uid, sid)
+	if err != nil {
+		return err
+	}
+
+	p.setUpdated()
+	return nil
 }
 
 // Suggest song to suggestion queue
@@ -162,7 +179,14 @@ func (p *Party) Suggest(uid UserUUID, sid SongUID) error {
 		return fmt.Errorf("user can't suggest")
 	}
 
-	return p.suggestionQueue.AddSong(uid, sid)
+	err := p.suggestionQueue.AddSong(uid, sid)
+	if err != nil {
+		return err
+	}
+
+	p.setUpdated()
+	return nil
+
 }
 
 // Seek to a position in the song.
@@ -207,7 +231,7 @@ func (p *Party) TimeSinceLastChange() time.Duration {
 const (
 	PullChangeKey  = "change"
 	PullPlayingKey = "playing"
-	PullSuggestKeg = "suggest"
+	PullSuggestKey = "suggest"
 )
 
 // Pull returns the user data in a serializable format.
@@ -236,7 +260,7 @@ func (p *Party) Pull(userUUID UserUUID, clientChangeID uint64) (interface{}, err
 	data["permissions"] = user.Data()
 	data[PullChangeKey] = p.changeID
 	data[PullPlayingKey] = p.nowPlaying.Data()
-	data[PullSuggestKeg] = p.suggestionQueue.Pull(userUUID)
+	data[PullSuggestKey] = p.suggestionQueue.Pull(userUUID)
 
 	return data, nil
 }

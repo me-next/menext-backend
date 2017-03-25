@@ -246,6 +246,8 @@ func (s *Server) GetAPI() http.Handler {
 
 	// queues
 	router.Path("/suggest/{pid}/{uid}/{sid}").HandlerFunc(s.Suggest).Methods("GET")
+	router.Path("/suggestDown/{pid}/{uid}/{sid}").HandlerFunc(s.SuggestionDownvote).Methods("GET")
+
 	return router
 }
 

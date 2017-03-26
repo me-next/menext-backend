@@ -49,7 +49,7 @@ func (ts *testServer) createParty(ouid party.UserUUID, oname string) (server.Par
 func (ts *testServer) pull(ouid party.UserUUID,
 	pid server.PartyUUID, cid uint64) (map[string]interface{}, error) {
 	resp := ts.getHTTPResponse(
-		fmt.Sprintf("/%s/%s/pull/%d", ouid, pid, cid))
+		fmt.Sprintf("/pull/%s/%s/%d", ouid, pid, cid))
 
 	// check response
 	if resp.Code != http.StatusOK {
@@ -75,7 +75,7 @@ func (ts *testServer) seek(ouid party.UserUUID,
 	pid server.PartyUUID, pos uint32) error {
 
 	resp := ts.getHTTPResponse(
-		fmt.Sprintf("/%s/%s/seek/%d", pid, ouid, pos))
+		fmt.Sprintf("/seek/%s/%s/%d", pid, ouid, pos))
 
 	// check response
 	if resp.Code != http.StatusOK {

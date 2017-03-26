@@ -237,15 +237,17 @@ func (s *Server) GetAPI() http.Handler {
 	router := mux.NewRouter()
 	router.Path("/hello").HandlerFunc(s.sayHello).Methods("GET")
 	router.Path("/createParty/{uid}/{uname}").HandlerFunc(s.CreateParty).Methods("GET")
-	router.Path("/{uid}/{pid}/removeParty").HandlerFunc(s.RemoveParty).Methods("GET")
-	router.Path("/{uid}/{pid}/pull/{cid}").HandlerFunc(s.Pull).Methods("GET")
-	router.Path("/{pid}/joinParty/{uid}/{uname}").HandlerFunc(s.JoinParty).Methods("GET")
+	router.Path("/removeParty/{uid}/{pid}").HandlerFunc(s.RemoveParty).Methods("GET")
+	router.Path("/pull/{uid}/{pid}/{cid}").HandlerFunc(s.Pull).Methods("GET")
+	router.Path("/joinParty/{pid}/{uid}/{uname}").HandlerFunc(s.JoinParty).Methods("GET")
 
 	// nowPlaying
-	router.Path("/{pid}/{uid}/seek/{pos}").HandlerFunc(s.Seek).Methods("GET")
+	router.Path("/seek/{pid}/{uid}/{pos}").HandlerFunc(s.Seek).Methods("GET")
 
 	// queues
 	router.Path("/suggest/{pid}/{uid}/{sid}").HandlerFunc(s.Suggest).Methods("GET")
+	router.Path("/suggestDown/{pid}/{uid}/{sid}").HandlerFunc(s.SuggestionDownvote).Methods("GET")
+
 	return router
 }
 

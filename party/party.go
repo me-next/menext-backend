@@ -98,8 +98,7 @@ func (p *Party) setDefaultPermission(user *User) {
 
 	user.SetPermission(UserCanSeekPermission, true)
 	user.SetPermission(UserCanSuggestSongPermission, true)
-	user.SetPermission(UserCanUpvoteSuggestionPermisison, true)
-	user.SetPermission(UserCanDownvoteSuggestionPermisison, true)
+	user.SetPermission(UserCanVoteSuggestionPermission, true)
 
 }
 
@@ -133,7 +132,7 @@ func (p *Party) SuggestionUpvote(uid UserUUID, sid SongUID) error {
 	p.mux.Lock()
 	defer p.mux.Unlock()
 
-	if can, err := p.canUserPerformAction(uid, UserCanUpvoteSuggestionPermisison); err != nil {
+	if can, err := p.canUserPerformAction(uid, UserCanVoteSuggestionPermission); err != nil {
 		return err
 	} else if !can {
 		return fmt.Errorf("user can't upvote")
@@ -153,13 +152,33 @@ func (p *Party) SuggestionDownvote(uid UserUUID, sid SongUID) error {
 	p.mux.Lock()
 	defer p.mux.Unlock()
 
-	if can, err := p.canUserPerformAction(uid, UserCanDownvoteSuggestionPermisison); err != nil {
+	if can, err := p.canUserPerformAction(uid, UserCanVoteSuggestionPermission); err != nil {
 		return err
 	} else if !can {
 		return fmt.Errorf("user can't downvote")
 	}
 
 	err := p.suggestionQueue.Downvote(uid, sid)
+	if err != nil {
+		return err
+	}
+
+	p.setUpdated()
+	return nil
+}
+
+// SuggestionClearvote song to suggestion queue
+func (p *Party) SuggestionClearvote(uid UserUUID, sid SongUID) error {
+	p.mux.Lock()
+	defer p.mux.Unlock()
+
+	if can, err := p.canUserPerformAction(uid, UserCanSuggestSongPermission); err != nil {
+		return err
+	} else if !can {
+		return fmt.Errorf("user can't suggest")
+	}
+
+	err := p.suggestionQueue.ClearVotes(uid, sid)
 	if err != nil {
 		return err
 	}
@@ -186,7 +205,6 @@ func (p *Party) Suggest(uid UserUUID, sid SongUID) error {
 
 	p.setUpdated()
 	return nil
-
 }
 
 // Seek to a position in the song.

@@ -48,17 +48,17 @@ func TestServerSingleUser(t *testing.T) {
 	assert.NotEqual(t, "", pid)
 
 	// do a bad remove
-	resp = getHTTPResponse(fmt.Sprintf("/%s/%s/removeParty", "2", pid), s)
+	resp = getHTTPResponse(fmt.Sprintf("/removeParty/%s/%s", "2", pid), s)
 	assert.Equal(t, http.StatusInternalServerError, resp.Code)
 	assert.NotEqual(t, "", resp.Body.String())
 
 	// remove the party
-	resp = getHTTPResponse(fmt.Sprintf("/%s/%s/removeParty", ouid, pid), s)
+	resp = getHTTPResponse(fmt.Sprintf("/removeParty/%s/%s", ouid, pid), s)
 	assert.Equal(t, http.StatusOK, resp.Code)
 	assert.Equal(t, "", resp.Body.String())
 
 	// check that we can't still remove party
-	resp = getHTTPResponse(fmt.Sprintf("/%s/%s/removeParty", ouid, pid), s)
+	resp = getHTTPResponse(fmt.Sprintf("/removeParty/%s/%s", ouid, pid), s)
 	assert.Equal(t, 500, resp.Code)
 	assert.NotEqual(t, "", resp.Body.String())
 }
@@ -89,22 +89,22 @@ func TestServerMultiUser(t *testing.T) {
 
 	// add a user
 	fid := "2"
-	resp := getHTTPResponse(fmt.Sprintf("/%s/joinParty/%s/%s", pid, fid, "fred"), s)
+	resp := getHTTPResponse(fmt.Sprintf("/joinParty/%s/%s/%s", pid, fid, "fred"), s)
 	assert.Equal(t, http.StatusOK, resp.Code)
 	assert.Equal(t, "", resp.Body.String())
 
 	// double add the user
-	resp = getHTTPResponse(fmt.Sprintf("/%s/joinParty/%s/%s", pid, fid, "fred"), s)
+	resp = getHTTPResponse(fmt.Sprintf("/joinParty/%s/%s/%s", pid, fid, "fred"), s)
 	assert.Equal(t, http.StatusInternalServerError, resp.Code)
 	assert.NotEqual(t, "", resp.Body.String())
 
 	// have the user violate permissions
-	resp = getHTTPResponse(fmt.Sprintf("/%s/%s/removeParty", fid, pid), s)
+	resp = getHTTPResponse(fmt.Sprintf("/removeParty/%s/%s", fid, pid), s)
 	assert.Equal(t, http.StatusInternalServerError, resp.Code)
 	assert.NotEqual(t, "", resp.Body.String())
 
 	// remove the party
-	resp = getHTTPResponse(fmt.Sprintf("/%s/%s/removeParty", ouid, pid), s)
+	resp = getHTTPResponse(fmt.Sprintf("/removeParty/%s/%s", ouid, pid), s)
 	assert.Equal(t, http.StatusOK, resp.Code)
 	assert.Equal(t, "", resp.Body.String())
 }
@@ -113,7 +113,7 @@ func TestServerMultiUser(t *testing.T) {
 // need to provide the uid, event id, change id plus the server and testing objects
 // expects that the pulls are good, and will test as such
 func pull(ouid, pid string, change uint64, s *server.Server, t *testing.T) map[string]interface{} {
-	resp := getHTTPResponse(fmt.Sprintf("/%s/%s/pull/%d", ouid, pid, change), s)
+	resp := getHTTPResponse(fmt.Sprintf("/pull/%s/%s/%d", ouid, pid, change), s)
 
 	// check response
 	assert.Equal(t, http.StatusOK, resp.Code)
@@ -144,7 +144,7 @@ func TestServerPullUser(t *testing.T) {
 	assert.Empty(t, data)
 
 	// check a bad pull
-	resp := getHTTPResponse(fmt.Sprintf("/%s/%s/pull/%d", ouid, pid, 1), s)
+	resp := getHTTPResponse(fmt.Sprintf("/pull/%s/%s/%d", ouid, pid, 1), s)
 	assert.Equal(t, http.StatusInternalServerError, resp.Code)
 
 	assert.Contains(t, resp.Body.String(), "bad pull id")

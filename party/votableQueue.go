@@ -124,6 +124,18 @@ func (q *VotableQueue) Downvote(uid UserUUID, sid SongUID) error {
 	return nil
 }
 
+// ClearVotes for a user from the song
+func (q *VotableQueue) ClearVotes(uid UserUUID, sid SongUID) error {
+	vse, has := q.songs[sid]
+	if !has {
+		return fmt.Errorf("song not in queue")
+	}
+
+	// check that the up / down votes are cleaned up properly
+	vse.ClearUserVotes(uid)
+	return nil
+}
+
 // values for the song element voting
 const (
 	UpVoteValue   = 1
@@ -146,7 +158,7 @@ func (vse VotableSongElement) Pull(uid UserUUID) interface{} {
 	data["id"] = vse.songID
 
 	// check the song data
-	if val, has := vse.votes[uid]; has && val != DownVoteValue {
+	if val, has := vse.votes[uid]; has {
 		data["vote"] = val
 	} else {
 		data["vote"] = 0

@@ -35,8 +35,7 @@ func (u User) Data() interface{} {
 
 // user permissions
 const (
-	UserCanSeekPermission               = "Seek"
-	UserCanUpvoteSuggestionPermisison   = "UpvoteSuggestion"
-	UserCanDownvoteSuggestionPermisison = "DownvoteSuggestion"
-	UserCanSuggestSongPermission        = "Suggest"
+	UserCanSeekPermission           = "Seek"
+	UserCanVoteSuggestionPermission = "SuggestVote"
+	UserCanSuggestSongPermission    = "Suggest"
 )

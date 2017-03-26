@@ -38,7 +38,7 @@ func (ts *testServer) suggestDownvote(pid server.PartyUUID, uid party.UserUUID, 
 func (ts *testServer) joinEvent(pid server.PartyUUID, uid party.UserUUID, name string) error {
 
 	resp := ts.getHTTPResponse(
-		fmt.Sprintf("/%s/joinParty/%s/%s", pid, uid, name))
+		fmt.Sprintf("/joinParty/%s/%s/%s", pid, uid, name))
 
 	// treat all the errors the same
 	if resp.Code != http.StatusOK {

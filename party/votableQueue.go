@@ -136,6 +136,36 @@ func (q *VotableQueue) ClearVotes(uid UserUUID, sid SongUID) error {
 	return nil
 }
 
+// Pop the top song off of the queue.
+func (q *VotableQueue) Pop() (SongUID, error) {
+
+	// check that there are songs in the queue
+	if len(q.songs) == 0 {
+		return "", fmt.Errorf("no songs in queue")
+	}
+
+	// find the "top" song
+	topScore := 0
+	var topSong VotableSongElement
+
+	for _, song := range q.songs {
+
+		// if == just check position
+		if song.Sum() == topScore {
+			if song.posAdded < topSong.posAdded {
+				topSong = song
+			}
+		}
+
+		if song.Sum() > topScore {
+			topScore = song.Sum()
+			topSong = song
+		}
+	}
+
+	return topSong.songID, nil
+}
+
 // values for the song element voting
 const (
 	UpVoteValue   = 1

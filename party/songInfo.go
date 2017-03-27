@@ -1,7 +1,6 @@
 package party
 
 import (
-	"github.com/me-next/menext-backend/queue"
 	"time"
 )
 
@@ -11,7 +10,7 @@ import (
 // song pos, and current server time.
 // The time diff gives a relative "time since seek'd to songPos"
 type NowPlaying struct {
-	nowPlaying queue.SongUUID
+	nowPlaying SongUID
 
 	// when we started the song
 	startTime time.Time
@@ -23,11 +22,17 @@ const (
 	KSongStartTimeMs = "SongStartTimeMs"
 	KCurrentTimeMs   = "CurrentTimeMs"
 	KSongPosition    = "SongPos"
+	KCurrentSongID   = "CurrentSongId"
 )
+
+// CurrentlyPlaying checks if there is a song currently playing
+func (np *NowPlaying) CurrentlyPlaying() bool {
+	return np.nowPlaying != ""
+}
 
 // ChangeSong changes the currently playing song.
 // Always start at 0:00 when changing.
-func (np *NowPlaying) ChangeSong(song queue.SongUUID) {
+func (np *NowPlaying) ChangeSong(song SongUID) {
 	np.nowPlaying = song
 	np.songPos = 0
 	np.startTime = time.Now()
@@ -48,9 +53,12 @@ func (np NowPlaying) Data() interface{} {
 		return int64(time.Nanosecond) * t.UnixNano() / int64(time.Millisecond)
 	}
 
-	data[KSongStartTimeMs] = toMs(np.startTime)
-	data[KCurrentTimeMs] = toMs(time.Now())
-	data[KSongPosition] = np.songPos
+	if np.CurrentlyPlaying() {
+		data[KSongStartTimeMs] = toMs(np.startTime)
+		data[KCurrentTimeMs] = toMs(time.Now())
+		data[KSongPosition] = np.songPos
+		data[KCurrentSongID] = np.nowPlaying
+	}
 
 	return data
 }

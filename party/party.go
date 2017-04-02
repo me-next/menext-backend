@@ -204,6 +204,20 @@ func (p *Party) Suggest(uid UserUUID, sid SongUID) error {
 	}
 
 	p.setUpdated()
+
+	// check if there is a song currently playing
+	if !p.nowPlaying.CurrentlyPlaying() {
+		nextSid, err := p.getNextSong()
+
+		// TODO: bigger check, this shouldn't happen
+		if err != nil {
+			return err
+		}
+
+		// set the currently playing song
+		p.nowPlaying.ChangeSong(nextSid)
+	}
+
 	return nil
 }
 
@@ -228,6 +242,32 @@ func (p *Party) Seek(uid UserUUID, position uint32) error {
 	p.setUpdated()
 
 	return nil
+}
+
+// SongFinished is called when a song has finished playing.
+func (p *Party) SongFinished(uid UserUUID, sid SongUID) error {
+	p.mux.Lock()
+	defer p.mux.Unlock()
+
+	// TODO: check that user is owner
+	// TODO: check that current song actually ended
+
+	nextSid, err := p.getNextSong()
+	if err != nil {
+		return err
+	}
+
+	// insert song
+	p.nowPlaying.ChangeSong(nextSid)
+	p.setUpdated()
+
+	return nil
+}
+
+// playNextSong from the queues
+func (p *Party) getNextSong() (SongUID, error) {
+	nextSong, err := p.suggestionQueue.Pop()
+	return nextSong, err
 }
 
 // updated increments the update tracker.

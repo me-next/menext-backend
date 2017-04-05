@@ -163,7 +163,9 @@ func (q *VotableQueue) Pop() (SongUID, error) {
 		}
 	}
 
-	return topSong.songID, nil
+	err := q.RemoveSong(topSong.songID)
+
+	return topSong.songID, err
 }
 
 // values for the song element voting

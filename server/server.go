@@ -243,6 +243,7 @@ func (s *Server) GetAPI() http.Handler {
 
 	// nowPlaying
 	router.Path("/seek/{pid}/{uid}/{pos}").HandlerFunc(s.Seek).Methods("GET")
+	router.Path("/songFinished/{pid}/{uid}/{sid}").HandlerFunc(s.SongFinished).Methods("GET")
 
 	// queues
 	router.Path("/suggest/{pid}/{uid}/{sid}").HandlerFunc(s.Suggest).Methods("GET")

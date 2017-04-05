@@ -17,17 +17,14 @@ type NowPlaying struct {
 	songPos   uint32
 }
 
-// consts for song info map
-const (
-	KSongStartTimeMs = "SongStartTimeMs"
-	KCurrentTimeMs   = "CurrentTimeMs"
-	KSongPosition    = "SongPos"
-	KCurrentSongID   = "CurrentSongId"
-)
-
 // CurrentlyPlaying checks if there is a song currently playing
 func (np *NowPlaying) CurrentlyPlaying() bool {
 	return np.nowPlaying != ""
+}
+
+// SetNonePlaying indicates that no song is playing.
+func (np *NowPlaying) SetNonePlaying() {
+	np.nowPlaying = ""
 }
 
 // ChangeSong changes the currently playing song.
@@ -45,6 +42,15 @@ func (np *NowPlaying) Seek(pos uint32) {
 	np.songPos = pos
 }
 
+// consts for song info map
+const (
+	KSongStartTimeMs = "SongStartTimeMs"
+	KCurrentTimeMs   = "CurrentTimeMs"
+	KSongPosition    = "SongPos"
+	KCurrentSongID   = "CurrentSongId"
+	KHasSong         = "HasSong"
+)
+
 // Data returns {songStartTime, pos, currTime}.
 func (np NowPlaying) Data() interface{} {
 	data := make(map[string]interface{})
@@ -58,6 +64,9 @@ func (np NowPlaying) Data() interface{} {
 		data[KCurrentTimeMs] = toMs(time.Now())
 		data[KSongPosition] = np.songPos
 		data[KCurrentSongID] = np.nowPlaying
+		data[KHasSong] = true
+	} else {
+		data[KHasSong] = false
 	}
 
 	return data

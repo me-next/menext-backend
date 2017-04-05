@@ -203,8 +203,6 @@ func (p *Party) Suggest(uid UserUUID, sid SongUID) error {
 		return err
 	}
 
-	p.setUpdated()
-
 	// check if there is a song currently playing
 	if !p.nowPlaying.CurrentlyPlaying() {
 		nextSid, err := p.getNextSong()
@@ -218,6 +216,7 @@ func (p *Party) Suggest(uid UserUUID, sid SongUID) error {
 		p.nowPlaying.ChangeSong(nextSid)
 	}
 
+	p.setUpdated()
 	return nil
 }
 
@@ -254,6 +253,15 @@ func (p *Party) SongFinished(uid UserUUID, sid SongUID) error {
 
 	nextSid, err := p.getNextSong()
 	if err != nil {
+
+		if nextSid == "" {
+			// if there are no more songs to get
+			p.nowPlaying.SetNonePlaying()
+			p.setUpdated()
+
+			return err
+		}
+
 		return err
 	}
 

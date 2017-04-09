@@ -2,7 +2,6 @@ package party_test
 
 import (
 	"github.com/me-next/menext-backend/party"
-	"github.com/me-next/menext-backend/queue"
 	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
@@ -11,7 +10,7 @@ import (
 func TestSongInfo(t *testing.T) {
 	np := &party.NowPlaying{}
 
-	np.ChangeSong(queue.SongUUID("1"))
+	np.ChangeSong("1")
 
 	getRaw := func(np *party.NowPlaying) map[string]interface{} {
 		raw := np.Data()

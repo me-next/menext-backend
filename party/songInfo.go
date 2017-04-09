@@ -19,6 +19,8 @@ type NowPlaying struct {
 
 	// range [0, 100]
 	volume uint32
+
+	playing bool
 }
 
 // CurrentlyPlaying checks if there is a song currently playing
@@ -37,6 +39,9 @@ func (np *NowPlaying) ChangeSong(song SongUID) {
 	np.nowPlaying = song
 	np.songPos = 0
 	np.startTime = time.Now()
+
+	// make sure that the song doesn't get paused
+	np.playing = true
 }
 
 // Seek to a position in the song.
@@ -56,6 +61,31 @@ func (np *NowPlaying) SetVolume(level uint32) error {
 	return nil
 }
 
+// SetPaused pauses if not already paused.
+// Need to provide the position of the pause
+func (np *NowPlaying) SetPaused(pos uint32) error {
+	if !np.playing {
+		return fmt.Errorf("already paused")
+	}
+
+	np.songPos = pos
+	np.playing = false
+	return nil
+}
+
+// SetPlaying plays the song if not already playing
+func (np *NowPlaying) SetPlaying() error {
+	if np.playing {
+		return fmt.Errorf("already playing")
+	}
+
+	// need to update time
+	np.startTime = time.Now()
+
+	np.playing = true
+	return nil
+}
+
 // consts for song info map
 const (
 	KSongStartTimeMs = "SongStartTimeMs"
@@ -64,6 +94,7 @@ const (
 	KCurrentSongID   = "CurrentSongId"
 	KHasSong         = "HasSong"
 	KVolume          = "Volume"
+	KPlaying         = "Playing"
 )
 
 // Data returns {songStartTime, pos, currTime}.
@@ -81,6 +112,7 @@ func (np NowPlaying) Data() interface{} {
 		data[KCurrentSongID] = np.nowPlaying
 		data[KHasSong] = true
 		data[KVolume] = np.volume
+		data[KPlaying] = np.playing
 	} else {
 		data[KHasSong] = false
 	}

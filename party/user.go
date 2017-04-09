@@ -38,4 +38,6 @@ const (
 	UserCanSeekPermission           = "Seek"
 	UserCanVoteSuggestionPermission = "SuggestVote"
 	UserCanSuggestSongPermission    = "Suggest"
+	UserCanChangeVolumePermission   = "Volume"
+	UserCanPlayPausePermission      = "PlayPause"
 )

@@ -99,6 +99,8 @@ func (p *Party) setDefaultPermission(user *User) {
 	user.SetPermission(UserCanSeekPermission, true)
 	user.SetPermission(UserCanSuggestSongPermission, true)
 	user.SetPermission(UserCanVoteSuggestionPermission, true)
+	user.SetPermission(UserCanChangeVolumePermission, true)
+	user.SetPermission(UserCanPlayPausePermission, true)
 
 }
 
@@ -269,6 +271,65 @@ func (p *Party) SongFinished(uid UserUUID, sid SongUID) error {
 	p.nowPlaying.ChangeSong(nextSid)
 	p.setUpdated()
 
+	return nil
+}
+
+// Pause the song
+func (p *Party) Pause(uid UserUUID, pos uint32) error {
+	p.mux.Lock()
+	defer p.mux.Unlock()
+
+	if can, err := p.canUserPerformAction(uid, UserCanPlayPausePermission); err != nil {
+		return err
+	} else if !can {
+		return fmt.Errorf("user can't play/pause")
+	}
+
+	if err := p.nowPlaying.SetPaused(pos); err != nil {
+		return err
+	}
+
+	p.setUpdated()
+	return nil
+}
+
+// Play the song
+func (p *Party) Play(uid UserUUID) error {
+	p.mux.Lock()
+	defer p.mux.Unlock()
+
+	if can, err := p.canUserPerformAction(uid, UserCanPlayPausePermission); err != nil {
+		return err
+	} else if !can {
+		return fmt.Errorf("user can't play/pause")
+	}
+
+	if err := p.nowPlaying.SetPlaying(); err != nil {
+		return err
+	}
+
+	p.setUpdated()
+	return nil
+}
+
+// SetVolume sets the volume for the player
+func (p *Party) SetVolume(uid UserUUID, level uint32) error {
+	p.mux.Lock()
+	defer p.mux.Unlock()
+
+	// check that the user can perform this action
+	if can, err := p.canUserPerformAction(uid, UserCanChangeVolumePermission); err != nil {
+		return err
+	} else if !can {
+		return fmt.Errorf("user can't change volume")
+	}
+
+	// check for error, could be on bounds
+	if err := p.nowPlaying.SetVolume(level); err != nil {
+		return err
+	}
+
+	p.setUpdated()
 	return nil
 }
 

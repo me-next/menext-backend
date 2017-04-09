@@ -140,3 +140,85 @@ func (s *Server) SetVolume(w http.ResponseWriter, r *http.Request) {
 
 	// exit with OK status code
 }
+
+// Play song if a song is playing. This is just a play/pause control.
+// path is /play/{pid}/{uid}
+func (s *Server) Play(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	uidStr, ufound := vars["uid"]
+	pidStr, pfound := vars["pid"]
+
+	if !ufound || !pfound {
+		urlerror(w)
+		return
+	}
+
+	p, err := s.pm.Party(PartyUUID(pidStr))
+	if err != nil {
+		errMsg := jsonError("no such party")
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write(errMsg)
+
+		return
+	}
+
+	// try to play
+	// error could be from bad user, nothing to play
+	err = p.Play(party.UserUUID(uidStr))
+	if err != nil {
+		errMsg := jsonError("%s", err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write(errMsg)
+
+		return
+	}
+
+	// exit with OK status code
+}
+
+// Pause the song at a certain position.
+// path is /pause/{pid}/{uid}/pos
+func (s *Server) Pause(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	uidStr, ufound := vars["uid"]
+	pidStr, pfound := vars["pid"]
+	posStr, posfound := vars["pos"]
+
+	if !ufound || !pfound || !posfound {
+		urlerror(w)
+		return
+	}
+
+	// try to parse the int
+	// this should just be a 32
+	pos, err := strconv.ParseUint(posStr, 10, 32)
+	if err != nil {
+		errMsg := jsonError("failed to parse position")
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write(errMsg)
+
+		return
+	}
+
+	p, err := s.pm.Party(PartyUUID(pidStr))
+	if err != nil {
+		errMsg := jsonError("no such party")
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write(errMsg)
+
+		return
+	}
+
+	// try to pause
+	// err could be bad uid or song state not changing
+	err = p.Pause(party.UserUUID(uidStr), uint32(pos))
+	if err != nil {
+		errMsg := jsonError("%s", err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write(errMsg)
+
+		return
+	}
+
+	// exit with OK status code
+}

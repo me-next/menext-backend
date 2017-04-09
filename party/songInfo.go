@@ -1,6 +1,7 @@
 package party
 
 import (
+	"fmt"
 	"time"
 )
 
@@ -15,6 +16,9 @@ type NowPlaying struct {
 	// when we started the song
 	startTime time.Time
 	songPos   uint32
+
+	// range [0, 100]
+	volume uint32
 }
 
 // CurrentlyPlaying checks if there is a song currently playing
@@ -42,6 +46,16 @@ func (np *NowPlaying) Seek(pos uint32) {
 	np.songPos = pos
 }
 
+// SetVolume to level in range [0, 100]
+func (np *NowPlaying) SetVolume(level uint32) error {
+	if level > 100 {
+		return fmt.Errorf("bad volume")
+	}
+
+	np.volume = level
+	return nil
+}
+
 // consts for song info map
 const (
 	KSongStartTimeMs = "SongStartTimeMs"
@@ -49,6 +63,7 @@ const (
 	KSongPosition    = "SongPos"
 	KCurrentSongID   = "CurrentSongId"
 	KHasSong         = "HasSong"
+	KVolume          = "Volume"
 )
 
 // Data returns {songStartTime, pos, currTime}.
@@ -65,6 +80,7 @@ func (np NowPlaying) Data() interface{} {
 		data[KSongPosition] = np.songPos
 		data[KCurrentSongID] = np.nowPlaying
 		data[KHasSong] = true
+		data[KVolume] = np.volume
 	} else {
 		data[KHasSong] = false
 	}

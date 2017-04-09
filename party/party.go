@@ -99,6 +99,7 @@ func (p *Party) setDefaultPermission(user *User) {
 	user.SetPermission(UserCanSeekPermission, true)
 	user.SetPermission(UserCanSuggestSongPermission, true)
 	user.SetPermission(UserCanVoteSuggestionPermission, true)
+	user.SetPermission(UserCanChangeVolumePermission, true)
 
 }
 
@@ -269,6 +270,27 @@ func (p *Party) SongFinished(uid UserUUID, sid SongUID) error {
 	p.nowPlaying.ChangeSong(nextSid)
 	p.setUpdated()
 
+	return nil
+}
+
+// SetVolume sets the volume for the player
+func (p *Party) SetVolume(uid UserUUID, level uint32) error {
+	p.mux.Lock()
+	defer p.mux.Unlock()
+
+	// check that the user can perform this action
+	if can, err := p.canUserPerformAction(uid, UserCanChangeVolumePermission); err != nil {
+		return err
+	} else if !can {
+		return fmt.Errorf("user can't change volume")
+	}
+
+	// check for error, could be on bounds
+	if err := p.nowPlaying.SetVolume(level); err != nil {
+		return err
+	}
+
+	p.setUpdated()
 	return nil
 }
 

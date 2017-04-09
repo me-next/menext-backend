@@ -93,3 +93,50 @@ func (s *Server) SongFinished(w http.ResponseWriter, r *http.Request) {
 
 	// exit with OK status code
 }
+
+// SetVolume changes the current volume
+// The path is /setVolume/{pid}/{uid}/{volume}
+func (s *Server) SetVolume(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	uidStr, ufound := vars["uid"]
+	pidStr, pfound := vars["pid"]
+	volStr, vfound := vars["volume"]
+
+	if !ufound || !pfound || !vfound {
+		urlerror(w)
+		return
+	}
+
+	// try to parse the int
+	// this should just be a 32
+	volume, err := strconv.ParseUint(volStr, 10, 32)
+	if err != nil {
+		errMsg := jsonError("failed to parse volume")
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write(errMsg)
+
+		return
+	}
+
+	p, err := s.pm.Party(PartyUUID(pidStr))
+	if err != nil {
+		errMsg := jsonError("no such party")
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write(errMsg)
+
+		return
+	}
+
+	// try to change the volume
+	// err could be bad uid or bad volume
+	err = p.SetVolume(party.UserUUID(uidStr), uint32(volume))
+	if err != nil {
+		errMsg := jsonError("%s", err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write(errMsg)
+
+		return
+	}
+
+	// exit with OK status code
+}

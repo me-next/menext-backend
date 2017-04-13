@@ -43,7 +43,7 @@ func (s *Server) Suggest(w http.ResponseWriter, r *http.Request) {
 }
 
 // SuggestionUpvote a song in an event's suggestion queue.
-// Path is /suggest/{pid}/{uid}/{sid}
+// Path is /suggestUp/{pid}/{uid}/{sid}
 // The client must verify that the song id is good.
 func (s *Server) SuggestionUpvote(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
@@ -65,7 +65,7 @@ func (s *Server) SuggestionUpvote(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// try to downvote
+	// try to upvote
 	err = p.SuggestionUpvote(party.UserUUID(uidStr), party.SongUID(sidStr))
 	if err != nil {
 		errMsg := jsonError("%s", err.Error())
@@ -111,7 +111,7 @@ func (s *Server) SuggestionDownvote(w http.ResponseWriter, r *http.Request) {
 }
 
 // SuggestionClearvote clears a users votes for a song
-// Path is /suggestDown/{pid}/{uid}/{sid}
+// Path is /suggestClearvote /{pid}/{uid}/{sid}
 // The client must verify that the song id is good.
 func (s *Server) SuggestionClearvote(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
@@ -133,7 +133,7 @@ func (s *Server) SuggestionClearvote(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// try to upvote
+	// try to clear the votes
 	err = p.SuggestionClearvote(party.UserUUID(uidStr), party.SongUID(sidStr))
 	if err != nil {
 		errMsg := jsonError("%s", err.Error())

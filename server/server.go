@@ -247,10 +247,13 @@ func (s *Server) GetAPI() http.Handler {
 	router.Path("/setVolume/{pid}/{uid}/{volume}").HandlerFunc(s.SetVolume).Methods("GET")
 	router.Path("/play/{pid}/{uid}").HandlerFunc(s.Play).Methods("GET")
 	router.Path("/pause/{pid}/{uid}/{pos}").HandlerFunc(s.Pause).Methods("GET")
+	router.Path("/skip/{pid}/{uid}/{sid}").HandlerFunc(s.Skip).Methods("GET")
 
 	// queues
 	router.Path("/suggest/{pid}/{uid}/{sid}").HandlerFunc(s.Suggest).Methods("GET")
 	router.Path("/suggestDown/{pid}/{uid}/{sid}").HandlerFunc(s.SuggestionDownvote).Methods("GET")
+	router.Path("/suggestUp/{pid}/{uid}/{sid}").HandlerFunc(s.SuggestionUpvote).Methods("GET")
+	router.Path("/suggestClearvote/{pid}/{uid}/{sid}").HandlerFunc(s.SuggestionClearvote).Methods("GET")
 
 	return router
 }

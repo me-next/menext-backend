@@ -80,9 +80,45 @@ func (s *Server) SongFinished(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// try to seek
-	// error could be from invalid user or bad seek
+	// try to finish the song
+	// error could be from invalid user or bad song
 	err = p.SongFinished(party.UserUUID(uidStr), party.SongUID(sidStr))
+	if err != nil {
+		errMsg := jsonError("%s", err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write(errMsg)
+
+		return
+	}
+
+	// exit with OK status code
+}
+
+// Skip the currently playing song.
+// The path is /skip/{pid}/{uid}/{sid}
+func (s *Server) Skip(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	uidStr, ufound := vars["uid"]
+	pidStr, pfound := vars["pid"]
+	sidStr, sfound := vars["sid"]
+
+	if !ufound || !pfound || !sfound {
+		urlerror(w)
+		return
+	}
+
+	p, err := s.pm.Party(PartyUUID(pidStr))
+	if err != nil {
+		errMsg := jsonError("no such party")
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write(errMsg)
+
+		return
+	}
+
+	// try to skip
+	// error could be from invalid user or bad seek
+	err = p.Skip(party.UserUUID(uidStr), party.SongUID(sidStr))
 	if err != nil {
 		errMsg := jsonError("%s", err.Error())
 		w.WriteHeader(http.StatusInternalServerError)

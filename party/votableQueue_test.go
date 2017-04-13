@@ -43,3 +43,24 @@ func TestVotableQueueSimple(t *testing.T) {
 		assert.Equal(t, song["vote"], 1)
 	}
 }
+
+func TestVotableQueueSort(t *testing.T) {
+	// check that the queue seems to sort properly
+	songs := []party.SongUID{"a", "b", "c", "d", "e"}
+
+	q := party.NewVotableQueue()
+	for _, song := range songs {
+		assert.Nil(t, q.AddSong("1", song))
+	}
+
+	assert.Nil(t, q.Upvote("1", "d"))
+	assert.Nil(t, q.Upvote("2", "d"))
+	assert.Nil(t, q.Downvote("2", "b"))
+
+	expectedOrder := []party.SongUID{"d", "a", "c", "e", "b"}
+	for _, song := range expectedOrder {
+		actual, err := q.Pop()
+		assert.Nil(t, err)
+		assert.Equal(t, song, actual)
+	}
+}

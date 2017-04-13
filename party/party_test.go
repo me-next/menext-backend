@@ -84,9 +84,11 @@ func TestPartySeek(t *testing.T) {
 		pullData := raw.(map[string]interface{})
 		changeData := pullData[party.PullPlayingKey].(map[string]interface{})
 
-		pos := changeData[party.KSongPosition].(uint32)
-		return pos, nil
+		pos := changeData[party.KSongPosition]
+		return pos.(uint32), nil
 	}
+
+	p.Suggest(ownerUUID, "a")
 
 	// try a valid seek
 	var seekTo uint32 = 5
@@ -103,7 +105,7 @@ func TestPartySeek(t *testing.T) {
 	assert.NotNil(t, err)
 
 	// check that the changeID didn't move
-	data, err := p.Pull(ownerUUID, 1)
+	data, err := p.Pull(ownerUUID, 2)
 	assert.Nil(t, err)
 	assert.Empty(t, data)
 }

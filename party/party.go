@@ -274,6 +274,33 @@ func (p *Party) SongFinished(uid UserUUID, sid SongUID) error {
 	return nil
 }
 
+// Skip the currently playing song.
+func (p *Party) Skip(uid UserUUID, sid SongUID) error {
+	p.mux.Lock()
+	defer p.mux.Unlock()
+
+	// TODO: check that they are on the actual current end song
+	nextSid, err := p.getNextSong()
+	if err != nil {
+
+		if nextSid == "" {
+			// if there are no more songs to get
+			p.nowPlaying.SetNonePlaying()
+			p.setUpdated()
+
+			return err
+		}
+
+		return err
+	}
+
+	// insert song
+	p.nowPlaying.ChangeSong(nextSid)
+	p.setUpdated()
+
+	return nil
+}
+
 // Pause the song
 func (p *Party) Pause(uid UserUUID, pos uint32) error {
 	p.mux.Lock()

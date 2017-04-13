@@ -64,12 +64,12 @@ func (q *VotableQueue) Pull(uid UserUUID) interface{} {
 	}
 
 	// sort the array by total votes. Break ties with order added.
-	sort.SliceIsSorted(arr, func(i, j int) bool {
+	sort.Slice(arr, func(i, j int) bool {
 		a := arr[i]
 		b := arr[j]
 
 		if a.Sum() == b.Sum() {
-			return a.posAdded > b.posAdded
+			return a.posAdded < b.posAdded
 		}
 
 		return a.Sum() < b.Sum()
@@ -145,12 +145,11 @@ func (q *VotableQueue) Pop() (SongUID, error) {
 	}
 
 	// find the "top" song
-	topScore := 0
+	topScore := -10000 // probably a safe lower bound on vote total
 	var topSong VotableSongElement
 
 	for _, song := range q.songs {
-
-		// if == just check position
+		// if == just check position added
 		if song.Sum() == topScore {
 			if song.posAdded < topSong.posAdded {
 				topSong = song
@@ -164,7 +163,6 @@ func (q *VotableQueue) Pop() (SongUID, error) {
 	}
 
 	err := q.RemoveSong(topSong.songID)
-
 	return topSong.songID, err
 }
 

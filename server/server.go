@@ -232,14 +232,118 @@ func (s *Server) Pull(w http.ResponseWriter, r *http.Request) {
 	w.Write(raw)
 }
 
+// Permissions returns a map of permission keys to descriptions
+// Path is /permissions/{pid}
+func (s *Server) Permissions(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	pidStr, pfound := vars["pid"]
+
+	if !ufound || !pfound {
+		urlerror(w)
+		return
+	}
+
+	pid := PartyUUID(pidStr)
+
+	p, err := s.pm.Party(pid)
+	if err != nil {
+		errMsg := jsonError("no such party %s", pid)
+		// when you write header after writting msg the header doesn't get written
+		// TODO: figure out why this happens
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write(errMsg)
+
+		return
+	}
+
+	// get the permissions map
+	data, err := p.GetPermissions()
+	if err != nil {
+		errMsg := jsonError("err getting permissions")
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write(errMsg)
+
+		return
+	}
+
+	raw, err := json.Marshal(data)
+	if err != nil {
+		errMsg := jsonError("failed to serialize")
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write(errMsg)
+
+		return
+	}
+
+	// write and exit
+	w.Write(raw)
+}
+
+// SetPermissions for all users in a party
+// path is /setPermission/{pid}/{uid}/{permKey}/{val}
+func (s *Server) SetPermissions(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	pidStr, pfound := vars["pid"]
+	uidStr, ufound := vars["uid"]
+	permStr, permFound := vars["perm"]
+	valStr, valFound := vars["val"]
+
+	if !ufound || !pfound || !permFound || !valFound {
+		urlerror(w)
+		return
+	}
+
+	pid := PartyUUID(pidStr)
+
+	p, err := s.pm.Party(pid)
+	if err != nil {
+		errMsg := jsonError("no such party %s", pid)
+		// when you write header after writting msg the header doesn't get written
+		// TODO: figure out why this happens
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write(errMsg)
+
+		return
+	}
+
+	// get the permissions map
+	data, err := p.GetPermissions()
+	if err != nil {
+		errMsg := jsonError("err getting permissions")
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write(errMsg)
+
+		return
+	}
+
+	raw, err := json.Marshal(data)
+	if err != nil {
+		errMsg := jsonError("failed to serialize")
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write(errMsg)
+
+		return
+	}
+
+	// write and exit
+	w.Write(raw)
+}
+
 // GetAPI provides the server router. This is broken off from Start to make testing easier.
 func (s *Server) GetAPI() http.Handler {
 	router := mux.NewRouter()
+
+	// debugging endpoint
 	router.Path("/hello").HandlerFunc(s.sayHello).Methods("GET")
+
+	// general party management
 	router.Path("/createParty/{uid}/{uname}").HandlerFunc(s.CreateParty).Methods("GET")
 	router.Path("/removeParty/{uid}/{pid}").HandlerFunc(s.RemoveParty).Methods("GET")
 	router.Path("/pull/{uid}/{pid}/{cid}").HandlerFunc(s.Pull).Methods("GET")
 	router.Path("/joinParty/{pid}/{uid}/{uname}").HandlerFunc(s.JoinParty).Methods("GET")
+
+	// permissions
+	router.Path("/permissions/{pid}").HandlerFunc(s.Permissions).Methods("GET")
 
 	// nowPlaying
 	router.Path("/seek/{pid}/{uid}/{pos}").HandlerFunc(s.Seek).Methods("GET")

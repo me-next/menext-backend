@@ -104,6 +104,18 @@ func (p *Party) setDefaultPermission(user *User) {
 
 }
 
+// GetPermissions returns a map of permission values to their descriptions
+func (p Party) GetPermissions() map[string]string {
+	// TODO: make this easier to change
+	return map[string]string{
+		UserCanSeekPermission:           "Users may seek",
+		UserCanSuggestSongPermission:    "Add songs to the suggestion queue",
+		UserCanVoteSuggestionPermission: "Users can vote on songs in the suggestion queue",
+		UserCanChangeVolumePermission:   "Users can change the music volume",
+		UserCanPlayPausePermission:      "Users can play and pause music",
+	}
+}
+
 func (p *Party) getUser(userUUID UserUUID) (*User, error) {
 	user, has := p.users[userUUID]
 	if !has {

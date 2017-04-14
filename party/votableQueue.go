@@ -181,11 +181,13 @@ type VotableSongElement struct {
 	posAdded uint64
 }
 
-// Pull the song data.
+// Pull the song data. "posAdded" provides order for sorting.
 func (vse VotableSongElement) Pull(uid UserUUID) interface{} {
 	data := make(map[string]interface{})
 
 	data["id"] = vse.songID
+	data["posAdded"] = vse.posAdded
+	data["totalVotes"] = vse.Sum()
 
 	// check the song data
 	if val, has := vse.votes[uid]; has {

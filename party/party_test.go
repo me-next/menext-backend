@@ -109,3 +109,39 @@ func TestPartySeek(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Empty(t, data)
 }
+
+func TestPartyPermissions(t *testing.T) {
+	ouid := party.UserUUID("1")
+	p := party.New(ouid, "bob")
+
+	otherUID := party.UserUUID("other")
+	assert.Nil(t, p.AddUser(otherUID, "fred"))
+
+	type testCase struct {
+		permission string         // what to set
+		value      bool           // attempted value of permission
+		uid        party.UserUUID // user trying to set permission
+		expectNil  bool           // if the case should have an error or not
+	}
+
+	cases := []testCase{
+		{party.UserCanSeekPermission, false, ouid, true},        // change permission
+		{party.UserCanSeekPermission, true, ouid, true},         // change it back
+		{party.UserCanSeekPermission, false, otherUID, false},   // try to have a follower set permissions
+		{"bad", true, ouid, false},                              // set bad permisison
+		{party.UserCanPlayPausePermission, true, ouid, false},   // set permission without changing state
+		{party.UserCanPlayPausePermission, false, "bad", false}, // do a good set but with a bad uid
+	}
+
+	// run the test cases
+	for _, test := range cases {
+		err := p.SetPermission(test.permission, test.value, test.uid)
+
+		// switch on expected value of error
+		if test.expectNil {
+			assert.Nil(t, err)
+		} else {
+			assert.NotNil(t, err)
+		}
+	}
+}

@@ -18,6 +18,9 @@ type Party struct {
 	nowPlaying      NowPlaying
 
 	lastChangeT time.Time
+
+	// map of the permission to bools of if a user can use them
+	permMap map[string]bool
 }
 
 // New party
@@ -30,6 +33,13 @@ func New(ownerUUID UserUUID, ownerName string) *Party {
 		suggestionQueue: NewVotableQueue(),
 
 		lastChangeT: time.Now(),
+
+		permMap: make(map[string]bool),
+	}
+
+	// initially set true for all permissions
+	for key := range PermissionDescriptionMap {
+		p.permMap[key] = true
 	}
 
 	p.AddUser(ownerUUID, ownerName)
@@ -82,13 +92,18 @@ func (p *Party) CanUserEndParty(userUUID UserUUID) bool {
 
 // canUserPerformAction id'd by string
 func (p *Party) canUserPerformAction(userUUID UserUUID, action string) (bool, error) {
-	user, err := p.getUser(userUUID)
-
-	if err != nil {
+	// check that the user exists
+	if _, err := p.getUser(userUUID); err != nil {
 		return false, err
 	}
 
-	return user.CanPerform(action), nil
+	// check the permission
+	value, has := p.permMap[action]
+	if !has {
+		return false, fmt.Errorf("unknown permisison")
+	}
+
+	return value, nil
 }
 
 func (p *Party) setDefaultPermission(user *User) {
@@ -96,24 +111,54 @@ func (p *Party) setDefaultPermission(user *User) {
 	user.SetPermission("default", true)
 	user.SetPermission("bad", false)
 
-	user.SetPermission(UserCanSeekPermission, true)
-	user.SetPermission(UserCanSuggestSongPermission, true)
-	user.SetPermission(UserCanVoteSuggestionPermission, true)
-	user.SetPermission(UserCanChangeVolumePermission, true)
-	user.SetPermission(UserCanPlayPausePermission, true)
+	/*
+		user.SetPermission(UserCanSeekPermission, true)
+		user.SetPermission(UserCanSuggestSongPermission, true)
+		user.SetPermission(UserCanVoteSuggestionPermission, true)
+		user.SetPermission(UserCanChangeVolumePermission, true)
+		user.SetPermission(UserCanPlayPausePermission, true)
 
+	*/
 }
 
 // GetPermissions returns a map of permission values to their descriptions
 func (p Party) GetPermissions() map[string]string {
-	// TODO: make this easier to change
-	return map[string]string{
-		UserCanSeekPermission:           "Users may seek",
-		UserCanSuggestSongPermission:    "Add songs to the suggestion queue",
-		UserCanVoteSuggestionPermission: "Users can vote on songs in the suggestion queue",
-		UserCanChangeVolumePermission:   "Users can change the music volume",
-		UserCanPlayPausePermission:      "Users can play and pause music",
+	p.mux.Lock()
+	defer p.mux.Unlock()
+
+	return PermissionDescriptionMap
+}
+
+// SetPermission by key.
+// uid of person trying to set the permissions.
+func (p *Party) SetPermission(which string, value bool, uid UserUUID) error {
+
+	// not a valid permission
+	if _, has := PermissionDescriptionMap[which]; !has {
+		return fmt.Errorf("not a valid permission")
 	}
+
+	// lock later b/c above should be threadsafe
+	p.mux.Lock()
+	defer p.mux.Unlock()
+
+	// check that the owner is setting perms
+	if uid != p.ownerUUID {
+		return fmt.Errorf("only owner can set permissions")
+	}
+
+	// adding a permission
+	if permValue, has := p.permMap[which]; !has {
+		return fmt.Errorf("something very wrong! permission map is missing a valid permission")
+	} else if permValue == value {
+		return fmt.Errorf("not changing anything")
+	}
+
+	// else update permission
+	p.permMap[which] = value
+	p.setUpdated()
+
+	return nil
 }
 
 func (p *Party) getUser(userUUID UserUUID) (*User, error) {
@@ -395,9 +440,10 @@ func (p *Party) TimeSinceLastChange() time.Duration {
 
 // consts for pull
 const (
-	PullChangeKey  = "change"
-	PullPlayingKey = "playing"
-	PullSuggestKey = "suggest"
+	PullChangeKey     = "change"
+	PullPlayingKey    = "playing"
+	PullSuggestKey    = "suggest"
+	PullPermissionKey = "permissions"
 )
 
 // Pull returns the user data in a serializable format.
@@ -416,15 +462,14 @@ func (p *Party) Pull(userUUID UserUUID, clientChangeID uint64) (interface{}, err
 		return nil, nil
 	}
 
-	user, err := p.getUser(userUUID)
-
+	_, err := p.getUser(userUUID)
 	if err != nil {
 		return nil, err
 	}
 
 	data := make(map[string]interface{})
-	data["permissions"] = user.Data()
 	data[PullChangeKey] = p.changeID
+	data[PullPermissionKey] = p.permMap
 	data[PullPlayingKey] = p.nowPlaying.Data()
 	data[PullSuggestKey] = p.suggestionQueue.Pull(userUUID)
 

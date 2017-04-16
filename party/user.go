@@ -41,3 +41,14 @@ const (
 	UserCanChangeVolumePermission   = "Volume"
 	UserCanPlayPausePermission      = "PlayPause"
 )
+
+// maps can't be const in go
+var (
+	PermissionDescriptionMap = map[string]string{
+		UserCanSeekPermission:           "Users may seek",
+		UserCanSuggestSongPermission:    "Add songs to the suggestion queue",
+		UserCanVoteSuggestionPermission: "Users can vote on songs in the suggestion queue",
+		UserCanChangeVolumePermission:   "Users can change the music volume",
+		UserCanPlayPausePermission:      "Users can play and pause music",
+	}
+)

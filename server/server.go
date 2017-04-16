@@ -238,7 +238,7 @@ func (s *Server) Permissions(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	pidStr, pfound := vars["pid"]
 
-	if !ufound || !pfound {
+	if !pfound {
 		urlerror(w)
 		return
 	}
@@ -257,7 +257,7 @@ func (s *Server) Permissions(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// get the permissions map
-	data, err := p.GetPermissions()
+	data := p.GetPermissions()
 	if err != nil {
 		errMsg := jsonError("err getting permissions")
 		w.WriteHeader(http.StatusInternalServerError)
@@ -279,8 +279,9 @@ func (s *Server) Permissions(w http.ResponseWriter, r *http.Request) {
 	w.Write(raw)
 }
 
-// SetPermissions for all users in a party
-// path is /setPermission/{pid}/{uid}/{permKey}/{val}
+// SetPermissions for all users in a party.
+// path is /setPermission/{pid}/{uid}/{permKey}/{val}.
+// val == "true" when trying to set to true, otherwise "false"
 func (s *Server) SetPermissions(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	pidStr, pfound := vars["pid"]
@@ -293,40 +294,29 @@ func (s *Server) SetPermissions(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// get the party
 	pid := PartyUUID(pidStr)
 
 	p, err := s.pm.Party(pid)
 	if err != nil {
 		errMsg := jsonError("no such party %s", pid)
-		// when you write header after writting msg the header doesn't get written
-		// TODO: figure out why this happens
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write(errMsg)
 
 		return
 	}
 
-	// get the permissions map
-	data, err := p.GetPermissions()
+	// try to set the permission
+	err = p.SetPermission(permStr, valStr == "true", party.UserUUID(uidStr))
 	if err != nil {
-		errMsg := jsonError("err getting permissions")
+		errMsg := jsonError(fmt.Sprintf("error setting permission: %s", err.Error()))
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write(errMsg)
 
 		return
 	}
 
-	raw, err := json.Marshal(data)
-	if err != nil {
-		errMsg := jsonError("failed to serialize")
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write(errMsg)
-
-		return
-	}
-
-	// write and exit
-	w.Write(raw)
+	// exit with OK status
 }
 
 // GetAPI provides the server router. This is broken off from Start to make testing easier.
@@ -344,6 +334,7 @@ func (s *Server) GetAPI() http.Handler {
 
 	// permissions
 	router.Path("/permissions/{pid}").HandlerFunc(s.Permissions).Methods("GET")
+	router.Path("/setPermission/{pid}/{uid}/{perm}/{val}").HandlerFunc(s.Permissions).Methods("GET")
 
 	// nowPlaying
 	router.Path("/seek/{pid}/{uid}/{pos}").HandlerFunc(s.Seek).Methods("GET")

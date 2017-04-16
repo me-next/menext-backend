@@ -350,6 +350,8 @@ func (s *Server) GetAPI() http.Handler {
 	router.Path("/suggestUp/{pid}/{uid}/{sid}").HandlerFunc(s.SuggestionUpvote).Methods("GET")
 	router.Path("/suggestClearvote/{pid}/{uid}/{sid}").HandlerFunc(s.SuggestionClearvote).Methods("GET")
 
+	router.Path("/addPlayNext/{pid}/{uid}/{sid}").HandlerFunc(s.AddPlayNext).Methods("GET")
+
 	return router
 }
 

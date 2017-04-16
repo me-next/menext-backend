@@ -74,7 +74,7 @@ func TestSongInfo(t *testing.T) {
 	assert.WithinDuration(t,
 		startT.Add(100*time.Millisecond),
 		currentT,
-		time.Millisecond*1,
+		time.Millisecond*3,
 		"sometimes the time is a little bit off on this one, thanks GC",
 	)
 }

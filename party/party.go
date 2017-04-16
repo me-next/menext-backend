@@ -16,6 +16,7 @@ type Party struct {
 	// queues
 	suggestionQueue VotableQueue
 	nowPlaying      NowPlaying
+	playNext        PlayNextQueue
 
 	lastChangeT time.Time
 
@@ -31,6 +32,7 @@ func New(ownerUUID UserUUID, ownerName string) *Party {
 		mux:             &sync.Mutex{},
 		nowPlaying:      NowPlaying{},
 		suggestionQueue: NewVotableQueue(),
+		playNext:        NewPlayNextQueue(),
 
 		lastChangeT: time.Now(),
 
@@ -110,15 +112,6 @@ func (p *Party) setDefaultPermission(user *User) {
 	// TODO: replace with real permissions
 	user.SetPermission("default", true)
 	user.SetPermission("bad", false)
-
-	/*
-		user.SetPermission(UserCanSeekPermission, true)
-		user.SetPermission(UserCanSuggestSongPermission, true)
-		user.SetPermission(UserCanVoteSuggestionPermission, true)
-		user.SetPermission(UserCanChangeVolumePermission, true)
-		user.SetPermission(UserCanPlayPausePermission, true)
-
-	*/
 }
 
 // GetPermissions returns a map of permission values to their descriptions
@@ -263,20 +256,46 @@ func (p *Party) Suggest(uid UserUUID, sid SongUID) error {
 	}
 
 	// check if there is a song currently playing
-	if !p.nowPlaying.CurrentlyPlaying() {
-		nextSid, err := p.getNextSong()
-
-		// TODO: bigger check, this shouldn't happen
-		if err != nil {
-			return err
-		}
-
-		// set the currently playing song
-		p.nowPlaying.ChangeSong(nextSid)
+	if !p.nowPlaying.CurrentlyHasSong() {
+		// this will choose the next song, return err if there is no song
+		// will update state if there is a change
+		return p.doPlayNextSong()
 	}
 
 	p.setUpdated()
 	return nil
+}
+
+// PlayNext adds a song to the playNext queue.
+// Error if song already in the queue.
+func (p *Party) PlayNext(uid UserUUID, sid SongUID) error {
+	p.mux.Lock()
+	defer p.mux.Unlock()
+
+	if err := p.doAddToPlayNext(uid, sid); err != nil {
+		return err
+	}
+
+	// try to play a song if none is playing
+	if !p.nowPlaying.CurrentlyHasSong() {
+		return p.doPlayNextSong()
+	}
+
+	// update the state
+	p.setUpdated()
+	return nil
+}
+
+// addToPlayNext used by several functions
+// call here
+func (p *Party) doAddToPlayNext(uid UserUUID, sid SongUID) error {
+	if can, err := p.canUserPerformAction(uid, UserCanPlaySongNextPermission); err != nil {
+		return err
+	} else if !can {
+		return fmt.Errorf("user does not have permission to add to playnext")
+	}
+
+	return p.playNext.AddSong(sid)
 }
 
 // Seek to a position in the song.
@@ -310,25 +329,8 @@ func (p *Party) SongFinished(uid UserUUID, sid SongUID) error {
 	// TODO: check that user is owner
 	// TODO: check that current song actually ended
 
-	nextSid, err := p.getNextSong()
-	if err != nil {
-
-		if nextSid == "" {
-			// if there are no more songs to get
-			p.nowPlaying.SetNonePlaying()
-			p.setUpdated()
-
-			return err
-		}
-
-		return err
-	}
-
-	// insert song
-	p.nowPlaying.ChangeSong(nextSid)
-	p.setUpdated()
-
-	return nil
+	// play next song if there is one. This will update if there is a state change
+	return p.doPlayNextSong()
 }
 
 // Skip the currently playing song.
@@ -337,25 +339,9 @@ func (p *Party) Skip(uid UserUUID, sid SongUID) error {
 	defer p.mux.Unlock()
 
 	// TODO: check that they are on the actual current end song
-	nextSid, err := p.getNextSong()
-	if err != nil {
 
-		if nextSid == "" {
-			// if there are no more songs to get
-			p.nowPlaying.SetNonePlaying()
-			p.setUpdated()
-
-			return err
-		}
-
-		return err
-	}
-
-	// insert song
-	p.nowPlaying.ChangeSong(nextSid)
-	p.setUpdated()
-
-	return nil
+	// play next song if there is one. This will update if there is a state change
+	return p.doPlayNextSong()
 }
 
 // Pause the song
@@ -417,10 +403,41 @@ func (p *Party) SetVolume(uid UserUUID, level uint32) error {
 	return nil
 }
 
-// playNextSong from the queues
-func (p *Party) getNextSong() (SongUID, error) {
-	nextSong, err := p.suggestionQueue.Pop()
-	return nextSong, err
+// finds the next song to play
+func (p *Party) doGetNextSongToPlay() (SongUID, error) {
+	// first try to pop off of the playNext
+	if sid, err := p.playNext.Pop(); err == nil {
+		return sid, err
+	}
+
+	// failed to get from playNext, try suggestion
+	return p.suggestionQueue.Pop()
+}
+
+// chooses and plays the next song.
+// Will update the state if there is a change
+func (p *Party) doPlayNextSong() error {
+	nsid, err := p.doGetNextSongToPlay()
+
+	if err != nil {
+		if nsid == "" {
+			p.nowPlaying.SetNonePlaying()
+			p.setUpdated()
+		}
+
+		return err
+	}
+
+	// this is bad
+	if nsid == "" {
+		return fmt.Errorf("expected to have a song to play or get an error")
+	}
+
+	// now try to play the song
+	p.nowPlaying.ChangeSong(nsid)
+	p.setUpdated()
+
+	return nil
 }
 
 // updated increments the update tracker.
@@ -444,6 +461,7 @@ const (
 	PullPlayingKey    = "playing"
 	PullSuggestKey    = "suggest"
 	PullPermissionKey = "permissions"
+	PullPlayNextKey   = "playnext"
 )
 
 // Pull returns the user data in a serializable format.
@@ -472,6 +490,7 @@ func (p *Party) Pull(userUUID UserUUID, clientChangeID uint64) (interface{}, err
 	data[PullPermissionKey] = p.permMap
 	data[PullPlayingKey] = p.nowPlaying.Data()
 	data[PullSuggestKey] = p.suggestionQueue.Pull(userUUID)
+	data[PullPlayNextKey] = p.playNext.Pull()
 
 	return data, nil
 }

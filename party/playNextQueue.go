@@ -42,6 +42,20 @@ func (pnq *PlayNextQueue) Pop() (SongUID, error) {
 	return val.(SongUID), nil
 }
 
+// SetTop song in the playnext. Error if the song is already in the queue
+func (pnq *PlayNextQueue) SetTop(sid SongUID) error {
+	// check if the song is already in the queue
+	existingElem := pnq.getSong(sid)
+	if existingElem != nil {
+		pnq.songs.MoveToFront(existingElem)
+		return nil
+	}
+
+	// put the new song on the top
+	pnq.songs.PushFront(sid)
+	return nil
+}
+
 // Pull the values in the PlayNextQueue.
 // Returns the next items in play order
 func (pnq PlayNextQueue) Pull() interface{} {

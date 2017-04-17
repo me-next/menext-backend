@@ -17,6 +17,7 @@ type Party struct {
 	suggestionQueue VotableQueue
 	nowPlaying      NowPlaying
 	playNext        PlayNextQueue
+	previous        PreviousStack
 
 	lastChangeT time.Time
 
@@ -27,12 +28,14 @@ type Party struct {
 // New party
 func New(ownerUUID UserUUID, ownerName string) *Party {
 	p := Party{
-		users:           make(map[UserUUID]*User),
-		ownerUUID:       ownerUUID,
-		mux:             &sync.Mutex{},
+		users:     make(map[UserUUID]*User),
+		ownerUUID: ownerUUID,
+		mux:       &sync.Mutex{},
+
 		nowPlaying:      NowPlaying{},
 		suggestionQueue: NewVotableQueue(),
 		playNext:        NewPlayNextQueue(),
+		previous:        NewPreviousStack(),
 
 		lastChangeT: time.Now(),
 
@@ -344,6 +347,39 @@ func (p *Party) Skip(uid UserUUID, sid SongUID) error {
 	return p.doPlayNextSong()
 }
 
+// Previous plays the previous song
+func (p *Party) Previous(uid UserUUID, sid SongUID) error {
+	p.mux.Lock()
+	defer p.mux.Unlock()
+
+	// TODO: check permissions
+	// TODO: check actual song
+
+	// get the most recent song
+	prevSid, err := p.previous.Pop()
+	if err != nil {
+		// bad pop shouldn't change anything
+		return err
+	}
+
+	// get the current song
+	csid := p.nowPlaying.GetCurrentlyPlaying()
+
+	// insert prev into the top of the play next queue
+	if err = p.playNext.SetTop(csid); err != nil {
+
+		// restore the previous queue
+		p.previous.Push(prevSid)
+
+		return err
+	}
+
+	// set the currently playing
+	p.nowPlaying.ChangeSong(prevSid)
+
+	return nil
+}
+
 // Pause the song
 func (p *Party) Pause(uid UserUUID, pos uint32) error {
 	p.mux.Lock()
@@ -403,7 +439,8 @@ func (p *Party) SetVolume(uid UserUUID, level uint32) error {
 	return nil
 }
 
-// finds the next song to play
+// finds the next song to play.
+// if an error was returned then no state changed
 func (p *Party) doGetNextSongToPlay() (SongUID, error) {
 	// first try to pop off of the playNext
 	if sid, err := p.playNext.Pop(); err == nil {
@@ -417,24 +454,25 @@ func (p *Party) doGetNextSongToPlay() (SongUID, error) {
 // chooses and plays the next song.
 // Will update the state if there is a change
 func (p *Party) doPlayNextSong() error {
+
 	nsid, err := p.doGetNextSongToPlay()
 
 	if err != nil {
-		if nsid == "" {
-			p.nowPlaying.SetNonePlaying()
-			p.setUpdated()
-		}
+		// TODO: may be out of songs, check to go to radio
 
+		// bad pop doesn't change anything, just return
 		return err
 	}
 
-	// this is bad
-	if nsid == "" {
-		return fmt.Errorf("expected to have a song to play or get an error")
-	}
+	// get current song to add to back
+	csid := p.nowPlaying.GetCurrentlyPlaying()
 
 	// now try to play the song
 	p.nowPlaying.ChangeSong(nsid)
+
+	p.previous.Push(csid)
+
+	// finally update state
 	p.setUpdated()
 
 	return nil

@@ -1,6 +1,8 @@
 package party_test
 
 import (
+	//"bytes"
+	//"encoding/gob"
 	"github.com/me-next/menext-backend/party"
 	"github.com/stretchr/testify/assert"
 	"testing"

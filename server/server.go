@@ -116,6 +116,40 @@ func (s *Server) JoinParty(w http.ResponseWriter, r *http.Request) {
 	// just exit with OK status code
 }
 
+// LeaveParty removes the user from the party
+// url is /leaveParty/{pid}/{uid}
+func (s *Server) LeaveParty(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	uidStr, ufound := vars["uid"]
+	pidStr, pfound := vars["pid"]
+
+	if !ufound || !pfound {
+		urlerror(w)
+		return
+	}
+
+	pid := PartyUUID(pidStr)
+	p, err := s.pm.Party(pid)
+	if err != nil {
+		errMsg := jsonError("no such party %s", pid)
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write(errMsg)
+
+		return
+	}
+
+	// try to leave the party
+	if err = p.RemoveUser(party.UserUUID(uidStr)); err != nil {
+		errMsg := jsonError("%s", err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write(errMsg)
+
+		return
+	}
+
+	// just exit with OK status code
+}
+
 // RemoveParty with owner uuid and party uuid
 // url is /{uid}/{pid}/removeParty
 func (s *Server) RemoveParty(w http.ResponseWriter, r *http.Request) {
@@ -331,6 +365,7 @@ func (s *Server) GetAPI() http.Handler {
 	router.Path("/removeParty/{uid}/{pid}").HandlerFunc(s.RemoveParty).Methods("GET")
 	router.Path("/pull/{uid}/{pid}/{cid}").HandlerFunc(s.Pull).Methods("GET")
 	router.Path("/joinParty/{pid}/{uid}/{uname}").HandlerFunc(s.JoinParty).Methods("GET")
+	router.Path("/leaveParty/{pid}/{uid}").HandlerFunc(s.LeaveParty).Methods("GET")
 
 	// permissions
 	router.Path("/permissions/{pid}").HandlerFunc(s.Permissions).Methods("GET")

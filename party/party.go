@@ -117,14 +117,6 @@ func (p *Party) setDefaultPermission(user *User) {
 	user.SetPermission("bad", false)
 }
 
-// GetPermissions returns a map of permission values to their descriptions
-func (p Party) GetPermissions() map[string]string {
-	p.mux.Lock()
-	defer p.mux.Unlock()
-
-	return PermissionDescriptionMap
-}
-
 // SetPermission by key.
 // uid of person trying to set the permissions.
 func (p *Party) SetPermission(which string, value bool, uid UserUUID) error {

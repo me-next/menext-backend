@@ -64,15 +64,16 @@ func (pnq PlayNextQueue) Pull() interface{} {
 	}
 
 	// loop over the list, adding each elem to song
-	var vals []SongUID
+	var vals []interface{}
 	elem := pnq.songs.Front()
 	for elem != nil {
-		vals = append(vals, elem.Value.(SongUID))
+		data := map[string]SongUID{"id": elem.Value.(SongUID)}
+		vals = append(vals, data)
 
 		elem = elem.Next()
 	}
 
-	return vals
+	return map[string]interface{}{"songs:": vals}
 }
 
 // return element with song id, nil if no such element found

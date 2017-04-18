@@ -267,38 +267,10 @@ func (s *Server) Pull(w http.ResponseWriter, r *http.Request) {
 }
 
 // Permissions returns a map of permission keys to descriptions
-// Path is /permissions/{pid}
+// Path is /permissions/
 func (s *Server) Permissions(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	pidStr, pfound := vars["pid"]
-
-	if !pfound {
-		urlerror(w)
-		return
-	}
-
-	pid := PartyUUID(pidStr)
-
-	p, err := s.pm.Party(pid)
-	if err != nil {
-		errMsg := jsonError("no such party %s", pid)
-		// when you write header after writting msg the header doesn't get written
-		// TODO: figure out why this happens
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write(errMsg)
-
-		return
-	}
-
 	// get the permissions map
-	data := p.GetPermissions()
-	if err != nil {
-		errMsg := jsonError("err getting permissions")
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write(errMsg)
-
-		return
-	}
+	data := party.GetPermissionDescriptions()
 
 	raw, err := json.Marshal(data)
 	if err != nil {
@@ -368,7 +340,7 @@ func (s *Server) GetAPI() http.Handler {
 	router.Path("/leaveParty/{pid}/{uid}").HandlerFunc(s.LeaveParty).Methods("GET")
 
 	// permissions
-	router.Path("/permissions/{pid}").HandlerFunc(s.Permissions).Methods("GET")
+	router.Path("/permissions").HandlerFunc(s.Permissions).Methods("GET")
 	router.Path("/setPermission/{pid}/{uid}/{perm}/{val}").HandlerFunc(s.Permissions).Methods("GET")
 
 	// nowPlaying

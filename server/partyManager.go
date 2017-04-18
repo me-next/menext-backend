@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/me-next/menext-backend/party"
 	"math/rand"
+	"strconv"
 	"sync"
 	"time"
 )
@@ -56,6 +57,73 @@ func (pm *PartyManager) CreateParty(owner party.UserUUID, ownerName string) (Par
 	pm.parties[pid] = p
 
 	return pid, nil
+}
+
+// CreatePartyWithName attempts to create a party with the custom ID.
+// If the party is already used, return a map with suggested names.
+// Suggested names format is: {"suggested": ["a", ...]}.
+// All of the suggested names will be valid
+func (pm *PartyManager) CreatePartyWithName(ouid party.UserUUID, oname string, pid string) (PartyUUID, []PartyUUID, error) {
+	// check that the party exists
+	pm.mux.RLock()
+
+	if _, found := pm.parties[PartyUUID(pid)]; !found {
+		pm.mux.RUnlock()
+
+		// get the write lock
+		pm.mux.Lock()
+
+		p := party.New(ouid, oname)
+
+		// double check that our desired name is still available
+		if _, found = pm.parties[PartyUUID(pid)]; !found {
+			pm.parties[PartyUUID(pid)] = p
+			pm.mux.Unlock()
+
+			return PartyUUID(pid), nil, nil
+		}
+
+		// someone ninja'd the name
+		// release the write lock, get the read lock, and try to generate a new name
+		pm.mux.Unlock()
+		pm.mux.RLock()
+	}
+
+	// generate alternative names
+	alternatives := pm.attemptMutate(pid)
+
+	// check that the alternatives are OK
+	var available []PartyUUID
+
+	for _, desired := range alternatives {
+		if _, found := pm.parties[desired]; !found {
+			// desired name doesn't exist
+			available = append(available, desired)
+		}
+	}
+
+	// append a sure shot
+	available = append(available, pm.generateUUID())
+
+	pm.mux.RUnlock()
+
+	// TODO: should this ever return an error
+	return "", available, fmt.Errorf("party name not available")
+}
+
+// try to generate a bunch of options for the string.
+// this doesn't look at existing party names
+func (pm PartyManager) attemptMutate(pid string) []PartyUUID {
+
+	var ret []PartyUUID
+	// try to add characters
+	for i := 1; i < 4; i++ {
+		change := pid
+		change += strconv.Itoa(i)
+		ret = append(ret, PartyUUID(change))
+	}
+
+	return ret
 }
 
 // Party by uuid.

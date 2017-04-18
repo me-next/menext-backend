@@ -86,6 +86,11 @@ func (np *NowPlaying) SetPlaying() error {
 	return nil
 }
 
+// GetCurrentlyPlaying song
+func (np *NowPlaying) GetCurrentlyPlaying() SongUID {
+	return np.nowPlaying
+}
+
 // consts for song info map
 const (
 	KSongStartTimeMs = "SongStartTimeMs"

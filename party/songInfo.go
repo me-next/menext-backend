@@ -23,8 +23,8 @@ type NowPlaying struct {
 	playing bool
 }
 
-// CurrentlyPlaying checks if there is a song currently playing
-func (np *NowPlaying) CurrentlyPlaying() bool {
+// CurrentlyHasSong checks if there is a song currently playing
+func (np *NowPlaying) CurrentlyHasSong() bool {
 	return np.nowPlaying != ""
 }
 
@@ -105,7 +105,7 @@ func (np NowPlaying) Data() interface{} {
 		return int64(time.Nanosecond) * t.UnixNano() / int64(time.Millisecond)
 	}
 
-	if np.CurrentlyPlaying() {
+	if np.CurrentlyHasSong() {
 		data[KSongStartTimeMs] = toMs(np.startTime)
 		data[KCurrentTimeMs] = toMs(time.Now())
 		data[KSongPosition] = np.songPos

@@ -40,6 +40,7 @@ const (
 	UserCanSuggestSongPermission    = "Suggest"
 	UserCanChangeVolumePermission   = "Volume"
 	UserCanPlayPausePermission      = "PlayPause"
+	UserCanPlaySongNextPermission   = "PlayNext"
 )
 
 // maps can't be const in go
@@ -50,5 +51,6 @@ var (
 		UserCanVoteSuggestionPermission: "Users can vote on songs in the suggestion queue",
 		UserCanChangeVolumePermission:   "Users can change the music volume",
 		UserCanPlayPausePermission:      "Users can play and pause music",
+		UserCanPlaySongNextPermission:   "User can add a song to playnext",
 	}
 )

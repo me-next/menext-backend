@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/me-next/menext-backend/party"
 	"math/rand"
-	"strconv"
 	"sync"
 	"time"
 )
@@ -63,7 +62,7 @@ func (pm *PartyManager) CreateParty(owner party.UserUUID, ownerName string) (Par
 // If the party is already used, return a map with suggested names.
 // Suggested names format is: {"suggested": ["a", ...]}.
 // All of the suggested names will be valid
-func (pm *PartyManager) CreatePartyWithName(ouid party.UserUUID, oname string, pid string) (PartyUUID, []PartyUUID, error) {
+func (pm *PartyManager) CreatePartyWithName(ouid party.UserUUID, oname string, pid string) (PartyUUID, PartyUUID, error) {
 	// check that the party exists
 	pm.mux.RLock()
 
@@ -80,7 +79,7 @@ func (pm *PartyManager) CreatePartyWithName(ouid party.UserUUID, oname string, p
 			pm.parties[PartyUUID(pid)] = p
 			pm.mux.Unlock()
 
-			return PartyUUID(pid), nil, nil
+			return PartyUUID(pid), "", nil
 		}
 
 		// someone ninja'd the name
@@ -89,41 +88,37 @@ func (pm *PartyManager) CreatePartyWithName(ouid party.UserUUID, oname string, p
 		pm.mux.RLock()
 	}
 
-	// generate alternative names
-	alternatives := pm.attemptMutate(pid)
+	// generate alternative name
+	alternative, err := pm.attemptMutate(pid)
 
-	// check that the alternatives are OK
-	var available []PartyUUID
+	if err != nil {
+		defer pm.mux.RUnlock()
 
-	for _, desired := range alternatives {
-		if _, found := pm.parties[desired]; !found {
-			// desired name doesn't exist
-			available = append(available, desired)
-		}
+		return "", pm.generateUUID(), err
 	}
-
-	// append a sure shot
-	available = append(available, pm.generateUUID())
 
 	pm.mux.RUnlock()
 
 	// TODO: should this ever return an error
-	return "", available, fmt.Errorf("party name not available")
+	return "", alternative, fmt.Errorf("party name not available")
 }
 
-// try to generate a bunch of options for the string.
-// this doesn't look at existing party names
-func (pm PartyManager) attemptMutate(pid string) []PartyUUID {
+// tries to generate an alternative
+func (pm PartyManager) attemptMutate(pid string) (PartyUUID, error) {
 
-	var ret []PartyUUID
-	// try to add characters
-	for i := 1; i < 4; i++ {
-		change := pid
-		change += strconv.Itoa(i)
-		ret = append(ret, PartyUUID(change))
+	// generate a slice that we'll reuse
+	n := len(pid) + 1
+	attempt := make([]byte, n)
+	copy(attempt, pid)
+
+	for i := 1; i < 10; i++ {
+		attempt[n-1] = '0' + byte(i)
+		if _, found := pm.parties[PartyUUID(attempt)]; !found {
+			return PartyUUID(attempt), nil
+		}
 	}
 
-	return ret
+	return "", fmt.Errorf("could not generate an alternative")
 }
 
 // Party by uuid.

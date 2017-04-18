@@ -95,22 +95,29 @@ func TestCleanup(t *testing.T) {
 func TestCustomNames(t *testing.T) {
 	pm := server.NewPartyManager()
 
-	// try creating a party
+	// try creating a good party
 	pid, alts, err := pm.CreatePartyWithName("1", "bob", "a")
 	assert.Nil(t, err)
-	assert.Empty(t, alts)
+	assert.Equal(t, server.PartyUUID(""), alts)
 	assert.Equal(t, server.PartyUUID("a"), pid)
 
-	// try bad party
+	for i := 1; i < 10; i++ {
+		// try bad party
+		pid, alts, err = pm.CreatePartyWithName("1", "bob", "a")
+		assert.NotNil(t, err)
+		assert.Equal(t, server.PartyUUID(""), pid)
+		assert.NotEqual(t, server.PartyUUID(""), alts)
+
+		// try inserting the suggestion
+		pid, nalts, err := pm.CreatePartyWithName("1", "bob", string(alts))
+		assert.Nil(t, err)
+		assert.Equal(t, server.PartyUUID(""), nalts)
+		assert.Equal(t, alts, pid)
+
+	}
+
+	// should have exausted all the options
 	pid, alts, err = pm.CreatePartyWithName("1", "bob", "a")
 	assert.NotNil(t, err)
-	assert.Len(t, alts, 4)
-	assert.Equal(t, server.PartyUUID(""), pid)
-
-	// try to use one of those names
-	pid, nalts, err := pm.CreatePartyWithName("1", "bob", string(alts[0]))
-	assert.Nil(t, err)
-	assert.Empty(t, nalts)
-	assert.Equal(t, alts[0], pid)
-
+	assert.NotEqual(t, server.PartyUUID(""), alts)
 }

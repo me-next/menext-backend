@@ -29,7 +29,7 @@ func (s *Server) sayHello(w http.ResponseWriter, r *http.Request) {
 }
 
 // CreatePartyWithName allows a user to create a party with a custom name.
-// If the event name is taken, returns some alternative names.
+// If the event name is taken, suggests an alternate name.
 // Path is: /createWithName/{uid}/{uname}/{pid}
 func (s *Server) CreatePartyWithName(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
@@ -42,19 +42,19 @@ func (s *Server) CreatePartyWithName(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pid, alts, err := s.pm.CreatePartyWithName(party.UserUUID(uidStr), uname, pidStr)
+	pid, alt, err := s.pm.CreatePartyWithName(party.UserUUID(uidStr), uname, pidStr)
 	if err != nil {
-		// need to return alts
+		// need to return alt
 
 		data := map[string]interface{}{
-			"error": err.Error(),
-			"alts":  alts,
+			"error":       err.Error(),
+			"alternative": alt,
 		}
 
 		// try to mashal
 		raw, err := json.Marshal(data)
 		if err != nil {
-			errMsg := jsonError("created alts but failed to marshal %s", err.Error())
+			errMsg := jsonError("created alternative but failed to marshal %s", err.Error())
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Write(errMsg)
 			return

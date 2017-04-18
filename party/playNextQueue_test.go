@@ -32,3 +32,12 @@ func TestPlayNextQueue(t *testing.T) {
 	// add to empty
 	assert.Nil(t, q.AddSong("1"))
 }
+
+func TestPlayNextQueuePull(t *testing.T) {
+	q := party.NewPlayNextQueue()
+
+	// good add
+	q.AddSong("a")
+	t.Log(q.Pull())
+
+}

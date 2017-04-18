@@ -54,3 +54,8 @@ var (
 		UserCanPlaySongNextPermission:   "User can add a song to playnext",
 	}
 )
+
+// GetPermissionDescriptions for the permissions available to any party
+func GetPermissionDescriptions() interface{} {
+	return PermissionDescriptionMap
+}

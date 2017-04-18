@@ -378,6 +378,7 @@ func (s *Server) GetAPI() http.Handler {
 	router.Path("/play/{pid}/{uid}").HandlerFunc(s.Play).Methods("GET")
 	router.Path("/pause/{pid}/{uid}/{pos}").HandlerFunc(s.Pause).Methods("GET")
 	router.Path("/skip/{pid}/{uid}/{sid}").HandlerFunc(s.Skip).Methods("GET")
+	router.Path("/previous/{pid}/{uid}/{sid}").HandlerFunc(s.Previous).Methods("GET")
 
 	// queues
 	router.Path("/suggest/{pid}/{uid}/{sid}").HandlerFunc(s.Suggest).Methods("GET")

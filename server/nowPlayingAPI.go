@@ -130,6 +130,43 @@ func (s *Server) Skip(w http.ResponseWriter, r *http.Request) {
 	// exit with OK status code
 }
 
+// Previous plays the previous song.
+// The currently playing song is put on the top of the play-next queue
+// The path is /previous/{pid}/{uid}/{sid}
+func (s *Server) Previous(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	uidStr, ufound := vars["uid"]
+	pidStr, pfound := vars["pid"]
+	sidStr, sfound := vars["sid"]
+
+	if !ufound || !pfound || !sfound {
+		urlerror(w)
+		return
+	}
+
+	p, err := s.pm.Party(PartyUUID(pidStr))
+	if err != nil {
+		errMsg := jsonError("no such party")
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write(errMsg)
+
+		return
+	}
+
+	// try to play the previous song
+	// error could be from invalid user or bad seek
+	err = p.Previous(party.UserUUID(uidStr), party.SongUID(sidStr))
+	if err != nil {
+		errMsg := jsonError("%s", err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write(errMsg)
+
+		return
+	}
+
+	// exit with OK status code
+}
+
 // SetVolume changes the current volume
 // The path is /setVolume/{pid}/{uid}/{volume}
 func (s *Server) SetVolume(w http.ResponseWriter, r *http.Request) {

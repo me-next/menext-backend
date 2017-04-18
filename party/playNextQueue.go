@@ -59,8 +59,11 @@ func (pnq *PlayNextQueue) SetTop(sid SongUID) error {
 // Pull the values in the PlayNextQueue.
 // Returns the next items in play order
 func (pnq PlayNextQueue) Pull() interface{} {
+
+	ret := make(map[string]interface{})
+
 	if pnq.songs.Len() == 0 {
-		return nil
+		return ret
 	}
 
 	// loop over the list, adding each elem to song
@@ -73,7 +76,8 @@ func (pnq PlayNextQueue) Pull() interface{} {
 		elem = elem.Next()
 	}
 
-	return map[string]interface{}{"songs:": vals}
+	ret["songs"] = vals
+	return ret
 }
 
 // return element with song id, nil if no such element found

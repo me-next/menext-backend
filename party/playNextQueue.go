@@ -62,10 +62,6 @@ func (pnq PlayNextQueue) Pull() interface{} {
 
 	ret := make(map[string]interface{})
 
-	if pnq.songs.Len() == 0 {
-		return ret
-	}
-
 	// loop over the list, adding each elem to song
 	var vals []interface{}
 	elem := pnq.songs.Front()

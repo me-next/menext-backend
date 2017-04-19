@@ -196,7 +196,7 @@ const (
 // generateUUID with 6 letters / numbers
 // panics if can't create a uuid within partUUIDCreateLoopLimit tries
 func (pm PartyManager) generateUUID() PartyUUID {
-	letterBytes := "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	letterBytes := "abcdefghijklmnopqrstuvwxyz"
 
 	// try to generate a uuid
 	// cap so if things are weird we can get out

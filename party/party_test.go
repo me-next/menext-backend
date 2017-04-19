@@ -179,3 +179,35 @@ func TestPartySkipPrev(t *testing.T) {
 	// now try pulling and check output
 
 }
+
+func TestPartyRemoveSuggest(t *testing.T) {
+	// check that adding a song to play-next removes from suggest
+	// however, it shouldn't keep it out of the suggest in the future
+
+	ouid := party.UserUUID("1")
+	p := party.New(ouid, "bob")
+
+	assert.Nil(t, p.Suggest(ouid, "a"))
+	assert.Nil(t, p.Suggest(ouid, "c"))
+
+	assert.Nil(t, p.Suggest(ouid, "b"))
+	assert.NotNil(t, p.Suggest(ouid, "b"))
+
+	// now try adding b to playnext
+	assert.Nil(t, p.PlayNext(ouid, "b"))
+
+	// now try adding to the suggest
+	assert.Nil(t, p.Suggest(ouid, "b"))
+	assert.NotNil(t, p.Suggest(ouid, "b"))
+
+	// skip to wipe playnext
+	assert.Nil(t, p.Skip(ouid, "a"))
+	assert.NotNil(t, p.Suggest(ouid, "b"))
+
+	// now try with addTop
+	assert.Nil(t, p.AddTopPlayNext(ouid, "b"))
+
+	// check we can suggest something in playnext
+	assert.Nil(t, p.Suggest(ouid, "b"))
+	assert.NotNil(t, p.Suggest(ouid, "b"))
+}

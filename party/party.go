@@ -276,6 +276,10 @@ func (p *Party) PlayNext(uid UserUUID, sid SongUID) error {
 		return p.doPlayNextSong()
 	}
 
+	// must be songs in a queue
+	// try to remove from suggest, ignore the error
+	p.removeFromSuggestions(sid)
+
 	// update the state
 	p.setUpdated()
 	return nil
@@ -301,9 +305,18 @@ func (p *Party) AddTopPlayNext(uid UserUUID, sid SongUID) error {
 		return p.doPlayNextSong()
 	}
 
+	// must be songs in a queue
+	// try to remove from suggest, ignore the error
+	p.removeFromSuggestions(sid)
+
 	// update the state
 	p.setUpdated()
 	return nil
+}
+
+// try to remove from suggestions once song is added to playnext
+func (p *Party) removeFromSuggestions(sid SongUID) error {
+	return p.suggestionQueue.RemoveSong(sid)
 }
 
 // PlayNow plays a song right now.

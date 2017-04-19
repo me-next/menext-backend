@@ -512,7 +512,11 @@ func (p *Party) doPlayNextSong() error {
 	if err != nil {
 		// TODO: may be out of songs, check to go to radio
 
-		// bad pop doesn't change anything, just return
+		// bad pop, but current song is still over, so we update
+		p.nowPlaying.SetNonePlaying()
+		p.setUpdated()
+
+		// return error
 		return err
 	}
 

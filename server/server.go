@@ -28,6 +28,73 @@ func (s *Server) sayHello(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("hello world"))
 }
 
+// CreatePartyWithName allows a user to create a party with a custom name.
+// If the event name is taken, suggests an alternate name.
+// Path is: /createWithName/{uid}/{uname}/{pid}
+func (s *Server) CreatePartyWithName(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	uidStr, ufound := vars["uid"]
+	pidStr, pfound := vars["pid"]
+	uname, nfound := vars["uname"]
+
+	if !ufound || !pfound || !nfound {
+		urlerror(w)
+		return
+	}
+
+	pid, alt, err := s.pm.CreatePartyWithName(party.UserUUID(uidStr), uname, pidStr)
+	if err != nil {
+		// need to return alt
+
+		data := map[string]interface{}{
+			"error":       err.Error(),
+			"alternative": alt,
+		}
+
+		// try to mashal
+		raw, err := json.Marshal(data)
+		if err != nil {
+			errMsg := jsonError("created alternative but failed to marshal %s", err.Error())
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write(errMsg)
+			return
+		}
+
+		// just write and return
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write(raw)
+
+		return
+	} // else created the party
+
+	// write the json
+	data := map[string]string{
+		"pid": string(pid),
+	}
+
+	raw, err := json.Marshal(data)
+	if err != nil {
+
+		// cleanup party
+		rmvErr := s.pm.Remove(pid)
+		if rmvErr != nil {
+			errMsg := jsonError("failed to marshal (%s)  and failed to rmv (%s)", err.Error(), rmvErr.Error())
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write(errMsg)
+
+			return
+		}
+
+		errMsg := jsonError("created party but failed to marshal %s", err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write(errMsg)
+
+		return
+	}
+
+	w.Write(raw)
+}
+
 // CreateParty with uname and owner uuid.
 // URL is /createParty/{uuid}/{uname}
 func (s *Server) CreateParty(w http.ResponseWriter, r *http.Request) {
@@ -334,6 +401,7 @@ func (s *Server) GetAPI() http.Handler {
 
 	// general party management
 	router.Path("/createParty/{uid}/{uname}").HandlerFunc(s.CreateParty).Methods("GET")
+	router.Path("/createPartyWithName/{uid}/{uname}/{pid}").HandlerFunc(s.CreatePartyWithName).Methods("GET")
 	router.Path("/removeParty/{uid}/{pid}").HandlerFunc(s.RemoveParty).Methods("GET")
 	router.Path("/pull/{uid}/{pid}/{cid}").HandlerFunc(s.Pull).Methods("GET")
 	router.Path("/joinParty/{pid}/{uid}/{uname}").HandlerFunc(s.JoinParty).Methods("GET")

@@ -58,6 +58,69 @@ func (pm *PartyManager) CreateParty(owner party.UserUUID, ownerName string) (Par
 	return pid, nil
 }
 
+// CreatePartyWithName attempts to create a party with the custom ID.
+// If the party is already used, return a map with suggested names.
+// Suggested names format is: {"suggested": ["a", ...]}.
+// All of the suggested names will be valid
+func (pm *PartyManager) CreatePartyWithName(ouid party.UserUUID, oname string, pid string) (PartyUUID, PartyUUID, error) {
+	// check that the party exists
+	pm.mux.RLock()
+
+	if _, found := pm.parties[PartyUUID(pid)]; !found {
+		pm.mux.RUnlock()
+
+		// get the write lock
+		pm.mux.Lock()
+
+		p := party.New(ouid, oname)
+
+		// double check that our desired name is still available
+		if _, found = pm.parties[PartyUUID(pid)]; !found {
+			pm.parties[PartyUUID(pid)] = p
+			pm.mux.Unlock()
+
+			return PartyUUID(pid), "", nil
+		}
+
+		// someone ninja'd the name
+		// release the write lock, get the read lock, and try to generate a new name
+		pm.mux.Unlock()
+		pm.mux.RLock()
+	}
+
+	// generate alternative name
+	alternative, err := pm.attemptMutate(pid)
+
+	if err != nil {
+		defer pm.mux.RUnlock()
+
+		return "", pm.generateUUID(), err
+	}
+
+	pm.mux.RUnlock()
+
+	// TODO: should this ever return an error
+	return "", alternative, fmt.Errorf("party name not available")
+}
+
+// tries to generate an alternative
+func (pm PartyManager) attemptMutate(pid string) (PartyUUID, error) {
+
+	// generate a slice that we'll reuse
+	n := len(pid) + 1
+	attempt := make([]byte, n)
+	copy(attempt, pid)
+
+	for i := 1; i < 10; i++ {
+		attempt[n-1] = '0' + byte(i)
+		if _, found := pm.parties[PartyUUID(attempt)]; !found {
+			return PartyUUID(attempt), nil
+		}
+	}
+
+	return "", fmt.Errorf("could not generate an alternative")
+}
+
 // Party by uuid.
 // NOTE: this is unsafe, the party may be editted / messed up while we are working on it
 func (pm *PartyManager) Party(pid PartyUUID) (*party.Party, error) {

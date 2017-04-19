@@ -91,3 +91,33 @@ func TestCleanup(t *testing.T) {
 	_, err = pm.Party(pidb)
 	assert.NotNil(t, err)
 }
+
+func TestCustomNames(t *testing.T) {
+	pm := server.NewPartyManager()
+
+	// try creating a good party
+	pid, alts, err := pm.CreatePartyWithName("1", "bob", "a")
+	assert.Nil(t, err)
+	assert.Equal(t, server.PartyUUID(""), alts)
+	assert.Equal(t, server.PartyUUID("a"), pid)
+
+	for i := 1; i < 10; i++ {
+		// try bad party
+		pid, alts, err = pm.CreatePartyWithName("1", "bob", "a")
+		assert.NotNil(t, err)
+		assert.Equal(t, server.PartyUUID(""), pid)
+		assert.NotEqual(t, server.PartyUUID(""), alts)
+
+		// try inserting the suggestion
+		pid, nalts, err := pm.CreatePartyWithName("1", "bob", string(alts))
+		assert.Nil(t, err)
+		assert.Equal(t, server.PartyUUID(""), nalts)
+		assert.Equal(t, alts, pid)
+
+	}
+
+	// should have exausted all the options
+	pid, alts, err = pm.CreatePartyWithName("1", "bob", "a")
+	assert.NotNil(t, err)
+	assert.NotEqual(t, server.PartyUUID(""), alts)
+}

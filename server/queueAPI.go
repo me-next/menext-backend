@@ -177,3 +177,35 @@ func (s *Server) AddPlayNext(w http.ResponseWriter, r *http.Request) {
 
 	// exit with OK status code
 }
+
+// AddTopPlayNext adds a song to the top of the play next queue.
+func (s *Server) AddTopPlayNext(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	uidStr, ufound := vars["uid"]
+	pidStr, pfound := vars["pid"]
+	sidStr, sfound := vars["sid"]
+
+	if !ufound || !pfound || !sfound {
+		urlerror(w)
+		return
+	}
+
+	p, err := s.pm.Party(PartyUUID(pidStr))
+	if err != nil {
+		errMsg := jsonError("no such party")
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write(errMsg)
+
+		return
+	}
+
+	// try to add the song
+	err = p.AddTopPlayNext(party.UserUUID(uidStr), party.SongUID(sidStr))
+	if err != nil {
+		errMsg := jsonError("%s", err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write(errMsg)
+	}
+
+	// exit with OK status code
+}

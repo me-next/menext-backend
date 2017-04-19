@@ -281,6 +281,51 @@ func (p *Party) PlayNext(uid UserUUID, sid SongUID) error {
 	return nil
 }
 
+// AddTopPlayNext adds a song to the top of the play-next queue.
+func (p *Party) AddTopPlayNext(uid UserUUID, sid SongUID) error {
+	p.mux.Lock()
+	defer p.mux.Unlock()
+
+	if can, err := p.canUserPerformAction(uid, UserCanPlaySongNextPermission); err != nil {
+		return err
+	} else if !can {
+		return fmt.Errorf("user can't play-next")
+	}
+
+	if err := p.playNext.SetTop(sid); err != nil {
+		return err
+	}
+
+	// try to play a song if none is playing
+	if !p.nowPlaying.CurrentlyHasSong() {
+		return p.doPlayNextSong()
+	}
+
+	// update the state
+	p.setUpdated()
+	return nil
+}
+
+// PlayNow plays a song right now.
+// Right now there's no error checking on this
+func (p *Party) PlayNow(uid UserUUID, sid SongUID) error {
+	p.mux.Lock()
+	defer p.mux.Unlock()
+
+	if can, err := p.canUserPerformAction(uid, UserCanPlaySongNextPermission); err != nil {
+		return err
+	} else if !can {
+		return fmt.Errorf("user can't play-next")
+	}
+
+	// play song now
+	p.playSong(sid)
+
+	p.setUpdated()
+
+	return nil
+}
+
 // addToPlayNext used by several functions
 // call here
 func (p *Party) doAddToPlayNext(uid UserUUID, sid SongUID) error {
@@ -444,6 +489,20 @@ func (p *Party) doGetNextSongToPlay() (SongUID, error) {
 	return p.suggestionQueue.Pop()
 }
 
+// plays a song right now
+func (p *Party) playSong(nsid SongUID) {
+	// get current song to add to back
+	csid := p.nowPlaying.GetCurrentlyPlaying()
+
+	// now try to play the song
+	p.nowPlaying.ChangeSong(nsid)
+
+	p.previous.Push(csid)
+
+	// finally update state
+	p.setUpdated()
+}
+
 // chooses and plays the next song.
 // Will update the state if there is a change
 func (p *Party) doPlayNextSong() error {
@@ -457,16 +516,8 @@ func (p *Party) doPlayNextSong() error {
 		return err
 	}
 
-	// get current song to add to back
-	csid := p.nowPlaying.GetCurrentlyPlaying()
-
-	// now try to play the song
-	p.nowPlaying.ChangeSong(nsid)
-
-	p.previous.Push(csid)
-
-	// finally update state
-	p.setUpdated()
+	// go ahead and play the song now
+	p.playSong(nsid)
 
 	return nil
 }

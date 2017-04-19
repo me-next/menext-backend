@@ -30,7 +30,7 @@ func (s *Server) sayHello(w http.ResponseWriter, r *http.Request) {
 
 // CreatePartyWithName allows a user to create a party with a custom name.
 // If the event name is taken, suggests an alternate name.
-// Path is: /createWithName/{uid}/{uname}/{pid}
+// Path is: /createPartyWithName/{uid}/{uname}/{pid}
 func (s *Server) CreatePartyWithName(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	uidStr, ufound := vars["uid"]

@@ -147,3 +147,35 @@ func TestPartyPermissions(t *testing.T) {
 		}
 	}
 }
+
+func TestPartySkipPrev(t *testing.T) {
+	ouid := party.UserUUID("1")
+	p := party.New(ouid, "bob")
+
+	// there was an issue with using skip and previous together
+	// repro is:
+	// 1) add song
+	// 2) let a song finish
+	// 3) skip a few songs
+	// 4) hit previous
+	// 5) nothing plays
+	assert.Nil(t, p.Suggest(ouid, "a"))
+	assert.Nil(t, p.Suggest(ouid, "b"))
+	assert.Nil(t, p.Suggest(ouid, "c"))
+	assert.Nil(t, p.Suggest(ouid, "d"))
+	assert.Nil(t, p.Suggest(ouid, "e"))
+
+	// finish a, b
+	// should be changes 6, 7
+	assert.Nil(t, p.Skip(ouid, "a"))
+	assert.Nil(t, p.Skip(ouid, "b"))
+	t.Log(p.Pull(ouid, 6))
+
+	// now try previous, current should be c
+	// change 8
+	assert.Nil(t, p.Previous(ouid, "c"))
+	t.Log(p.Pull(ouid, 6))
+
+	// now try pulling and check output
+
+}

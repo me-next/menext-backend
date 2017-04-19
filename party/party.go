@@ -368,6 +368,7 @@ func (p *Party) Previous(uid UserUUID, sid SongUID) error {
 
 	// set the currently playing
 	p.nowPlaying.ChangeSong(prevSid)
+	p.setUpdated()
 
 	return nil
 }

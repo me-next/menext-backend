@@ -351,6 +351,30 @@ func (p *Party) doAddToPlayNext(uid UserUUID, sid SongUID) error {
 	return p.playNext.AddSong(sid)
 }
 
+// RemoveFromPlayNext removes a song from play next.
+// err is the song isn't there.
+func (p *Party) RemoveFromPlayNext(uid UserUUID, sid SongUID) error {
+	p.mux.Lock()
+	defer p.mux.Unlock()
+
+	// check permissions
+	if can, err := p.canUserPerformAction(uid, UserCanPlaySongNextPermission); err != nil {
+		return err
+	} else if !can {
+		return fmt.Errorf("user does not have permission to remove from play next")
+	}
+
+	// try to remove
+	if err := p.playNext.Remove(sid); err != nil {
+		return err
+	}
+
+	// good remove
+	p.setUpdated()
+
+	return nil
+}
+
 // Seek to a position in the song.
 // Error if there isn't anything playing or the user doesn't
 // have permission.

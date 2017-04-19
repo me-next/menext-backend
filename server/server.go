@@ -430,6 +430,7 @@ func (s *Server) GetAPI() http.Handler {
 
 	router.Path("/addPlayNext/{pid}/{uid}/{sid}").HandlerFunc(s.AddPlayNext).Methods("GET")
 	router.Path("/addTopPlayNext/{pid}/{uid}/{sid}").HandlerFunc(s.AddTopPlayNext).Methods("GET")
+	router.Path("/removePlayNext/{pid}/{uid}/{sid}").HandlerFunc(s.RemovePlayNext).Methods("GET")
 
 	return router
 }

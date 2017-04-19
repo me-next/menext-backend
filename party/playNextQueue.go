@@ -56,6 +56,18 @@ func (pnq *PlayNextQueue) SetTop(sid SongUID) error {
 	return nil
 }
 
+// Remove a song from the pnq. Return err if song not there.
+func (pnq *PlayNextQueue) Remove(sid SongUID) error {
+	elem := pnq.getSong(sid)
+	if elem == nil {
+		return fmt.Errorf("song not in play next queue")
+	}
+
+	pnq.songs.Remove(elem)
+
+	return nil
+}
+
 // Pull the values in the PlayNextQueue.
 // Returns the next items in play order
 func (pnq PlayNextQueue) Pull() interface{} {

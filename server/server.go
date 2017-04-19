@@ -417,8 +417,10 @@ func (s *Server) GetAPI() http.Handler {
 	router.Path("/setVolume/{pid}/{uid}/{volume}").HandlerFunc(s.SetVolume).Methods("GET")
 	router.Path("/play/{pid}/{uid}").HandlerFunc(s.Play).Methods("GET")
 	router.Path("/pause/{pid}/{uid}/{pos}").HandlerFunc(s.Pause).Methods("GET")
+
 	router.Path("/skip/{pid}/{uid}/{sid}").HandlerFunc(s.Skip).Methods("GET")
 	router.Path("/previous/{pid}/{uid}/{sid}").HandlerFunc(s.Previous).Methods("GET")
+	router.Path("/playNow/{pid}/{uid}/{sid}").HandlerFunc(s.PlayNow).Methods("GET")
 
 	// queues
 	router.Path("/suggest/{pid}/{uid}/{sid}").HandlerFunc(s.Suggest).Methods("GET")
@@ -427,6 +429,8 @@ func (s *Server) GetAPI() http.Handler {
 	router.Path("/suggestClearvote/{pid}/{uid}/{sid}").HandlerFunc(s.SuggestionClearvote).Methods("GET")
 
 	router.Path("/addPlayNext/{pid}/{uid}/{sid}").HandlerFunc(s.AddPlayNext).Methods("GET")
+	router.Path("/addTopPlayNext/{pid}/{uid}/{sid}").HandlerFunc(s.AddTopPlayNext).Methods("GET")
+	router.Path("/removePlayNext/{pid}/{uid}/{sid}").HandlerFunc(s.RemovePlayNext).Methods("GET")
 
 	return router
 }

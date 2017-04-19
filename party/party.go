@@ -276,8 +276,66 @@ func (p *Party) PlayNext(uid UserUUID, sid SongUID) error {
 		return p.doPlayNextSong()
 	}
 
+	// must be songs in a queue
+	// try to remove from suggest, ignore the error
+	p.removeFromSuggestions(sid)
+
 	// update the state
 	p.setUpdated()
+	return nil
+}
+
+// AddTopPlayNext adds a song to the top of the play-next queue.
+func (p *Party) AddTopPlayNext(uid UserUUID, sid SongUID) error {
+	p.mux.Lock()
+	defer p.mux.Unlock()
+
+	if can, err := p.canUserPerformAction(uid, UserCanPlaySongNextPermission); err != nil {
+		return err
+	} else if !can {
+		return fmt.Errorf("user can't play-next")
+	}
+
+	if err := p.playNext.SetTop(sid); err != nil {
+		return err
+	}
+
+	// try to play a song if none is playing
+	if !p.nowPlaying.CurrentlyHasSong() {
+		return p.doPlayNextSong()
+	}
+
+	// must be songs in a queue
+	// try to remove from suggest, ignore the error
+	p.removeFromSuggestions(sid)
+
+	// update the state
+	p.setUpdated()
+	return nil
+}
+
+// try to remove from suggestions once song is added to playnext
+func (p *Party) removeFromSuggestions(sid SongUID) error {
+	return p.suggestionQueue.RemoveSong(sid)
+}
+
+// PlayNow plays a song right now.
+// Right now there's no error checking on this
+func (p *Party) PlayNow(uid UserUUID, sid SongUID) error {
+	p.mux.Lock()
+	defer p.mux.Unlock()
+
+	if can, err := p.canUserPerformAction(uid, UserCanPlaySongNextPermission); err != nil {
+		return err
+	} else if !can {
+		return fmt.Errorf("user can't play-next")
+	}
+
+	// play song now
+	p.playSong(sid)
+
+	p.setUpdated()
+
 	return nil
 }
 
@@ -291,6 +349,30 @@ func (p *Party) doAddToPlayNext(uid UserUUID, sid SongUID) error {
 	}
 
 	return p.playNext.AddSong(sid)
+}
+
+// RemoveFromPlayNext removes a song from play next.
+// err is the song isn't there.
+func (p *Party) RemoveFromPlayNext(uid UserUUID, sid SongUID) error {
+	p.mux.Lock()
+	defer p.mux.Unlock()
+
+	// check permissions
+	if can, err := p.canUserPerformAction(uid, UserCanPlaySongNextPermission); err != nil {
+		return err
+	} else if !can {
+		return fmt.Errorf("user does not have permission to remove from play next")
+	}
+
+	// try to remove
+	if err := p.playNext.Remove(sid); err != nil {
+		return err
+	}
+
+	// good remove
+	p.setUpdated()
+
+	return nil
 }
 
 // Seek to a position in the song.
@@ -444,19 +526,8 @@ func (p *Party) doGetNextSongToPlay() (SongUID, error) {
 	return p.suggestionQueue.Pop()
 }
 
-// chooses and plays the next song.
-// Will update the state if there is a change
-func (p *Party) doPlayNextSong() error {
-
-	nsid, err := p.doGetNextSongToPlay()
-
-	if err != nil {
-		// TODO: may be out of songs, check to go to radio
-
-		// bad pop doesn't change anything, just return
-		return err
-	}
-
+// plays a song right now
+func (p *Party) playSong(nsid SongUID) {
 	// get current song to add to back
 	csid := p.nowPlaying.GetCurrentlyPlaying()
 
@@ -467,6 +538,27 @@ func (p *Party) doPlayNextSong() error {
 
 	// finally update state
 	p.setUpdated()
+}
+
+// chooses and plays the next song.
+// Will update the state if there is a change
+func (p *Party) doPlayNextSong() error {
+
+	nsid, err := p.doGetNextSongToPlay()
+
+	if err != nil {
+		// TODO: may be out of songs, check to go to radio
+
+		// bad pop, but current song is still over, so we update
+		p.nowPlaying.SetNonePlaying()
+		p.setUpdated()
+
+		// return error
+		return err
+	}
+
+	// go ahead and play the song now
+	p.playSong(nsid)
 
 	return nil
 }

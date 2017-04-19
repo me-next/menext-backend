@@ -295,3 +295,35 @@ func (s *Server) Pause(w http.ResponseWriter, r *http.Request) {
 
 	// exit with OK status code
 }
+
+// PlayNow plays a song right now.
+func (s *Server) PlayNow(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	uidStr, ufound := vars["uid"]
+	pidStr, pfound := vars["pid"]
+	sidStr, sfound := vars["sid"]
+
+	if !ufound || !pfound || !sfound {
+		urlerror(w)
+		return
+	}
+
+	p, err := s.pm.Party(PartyUUID(pidStr))
+	if err != nil {
+		errMsg := jsonError("no such party")
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write(errMsg)
+
+		return
+	}
+
+	// try to play the song
+	err = p.PlayNow(party.UserUUID(uidStr), party.SongUID(sidStr))
+	if err != nil {
+		errMsg := jsonError("%s", err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write(errMsg)
+	}
+
+	// exit with OK status code
+}

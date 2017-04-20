@@ -77,7 +77,7 @@ func TestPartySeek(t *testing.T) {
 	p := party.New(ownerUUID, "bob")
 
 	// parses out the position
-	getPos := func(p *party.Party, uid party.UserUUID, cid uint64) (uint32, error) {
+	getPos := func(p *party.Party, uid party.UserUUID, cid uint64) (float32, error) {
 		raw, err := p.Pull(uid, cid)
 		if err != nil {
 			return 0, err
@@ -87,13 +87,13 @@ func TestPartySeek(t *testing.T) {
 		changeData := pullData[party.PullPlayingKey].(map[string]interface{})
 
 		pos := changeData[party.KSongPosition]
-		return pos.(uint32), nil
+		return pos.(float32), nil
 	}
 
 	p.Suggest(ownerUUID, "a")
 
 	// try a valid seek
-	var seekTo uint32 = 5
+	var seekTo float32 = 5.0
 	err := p.Seek(ownerUUID, seekTo)
 	assert.Nil(t, err)
 
@@ -176,10 +176,46 @@ func TestPartySkipPrev(t *testing.T) {
 	assert.Nil(t, p.Previous(ouid, "c"))
 	t.Log(p.Pull(ouid, 6))
 
-	// now try pulling and check output
-
 }
 
+func TestPartyPrevOnCurrentlyEmpty(t *testing.T) {
+	ouid := party.UserUUID("1")
+	p := party.New(ouid, "bob")
+
+	// add some songs
+	assert.Nil(t, p.Suggest(ouid, "a"))
+	assert.Nil(t, p.Suggest(ouid, "b"))
+
+	// finish a, b
+	assert.Nil(t, p.Skip(ouid, "a"))
+	assert.NotNil(t, p.SongFinished(ouid, "b"))
+
+	// nothing left, try hitting previous
+	assert.Nil(t, p.Previous(ouid, "b"))
+
+	// change 6
+	// should have a playing
+	assert.Nil(t, p.Previous(ouid, "a"))
+
+	// this previous shouldn't go through
+	assert.NotNil(t, p.Previous(ouid, "a"))
+	t.Log(p.Pull(ouid, 5))
+}
+
+func TestPartySingleSkip(t *testing.T) {
+	ouid := party.UserUUID("1")
+	p := party.New(ouid, "bob")
+
+	// add some songs
+	assert.Nil(t, p.Suggest(ouid, "a"))
+
+	// finish a, b
+	assert.NotNil(t, p.Skip(ouid, "a"))
+
+	// nothing left, try hitting previous
+	assert.Nil(t, p.Previous(ouid, ""))
+	t.Log(p.Pull(ouid, 2))
+}
 func TestPartyRemoveSuggest(t *testing.T) {
 	// check that adding a song to play-next removes from suggest
 	// however, it shouldn't keep it out of the suggest in the future

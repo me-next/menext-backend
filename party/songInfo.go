@@ -15,7 +15,7 @@ type NowPlaying struct {
 
 	// when we started the song
 	startTime time.Time
-	songPos   uint32
+	songPos   float32
 
 	// range [0, 100]
 	volume uint32
@@ -46,7 +46,7 @@ func (np *NowPlaying) ChangeSong(song SongUID) {
 
 // Seek to a position in the song.
 // Client needs to make sure that this makes sense.
-func (np *NowPlaying) Seek(pos uint32) {
+func (np *NowPlaying) Seek(pos float32) {
 	np.startTime = time.Now()
 	np.songPos = pos
 }
@@ -63,7 +63,7 @@ func (np *NowPlaying) SetVolume(level uint32) error {
 
 // SetPaused pauses if not already paused.
 // Need to provide the position of the pause
-func (np *NowPlaying) SetPaused(pos uint32) error {
+func (np *NowPlaying) SetPaused(pos float32) error {
 	if !np.playing {
 		return fmt.Errorf("already paused")
 	}

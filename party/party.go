@@ -378,7 +378,7 @@ func (p *Party) RemoveFromPlayNext(uid UserUUID, sid SongUID) error {
 // Seek to a position in the song.
 // Error if there isn't anything playing or the user doesn't
 // have permission.
-func (p *Party) Seek(uid UserUUID, position uint32) error {
+func (p *Party) Seek(uid UserUUID, position float32) error {
 	p.mux.Lock()
 	defer p.mux.Unlock()
 
@@ -421,7 +421,7 @@ func (p *Party) Skip(uid UserUUID, sid SongUID) error {
 	return p.doPlayNextSong()
 }
 
-// Previous plays the previous song
+// Previous plays the previous song.
 func (p *Party) Previous(uid UserUUID, sid SongUID) error {
 	p.mux.Lock()
 	defer p.mux.Unlock()
@@ -436,16 +436,20 @@ func (p *Party) Previous(uid UserUUID, sid SongUID) error {
 		return err
 	}
 
-	// get the current song
-	csid := p.nowPlaying.GetCurrentlyPlaying()
+	// check if something is currently playing
+	// if it is, don't try to insert into the queue
+	if p.nowPlaying.CurrentlyHasSong() {
+		// get the current song
+		csid := p.nowPlaying.GetCurrentlyPlaying()
 
-	// insert prev into the top of the play next queue
-	if err = p.playNext.SetTop(csid); err != nil {
+		// insert prev into the top of the play next queue
+		if err = p.playNext.SetTop(csid); err != nil {
 
-		// restore the previous queue
-		p.previous.Push(prevSid)
+			// restore the previous queue
+			p.previous.Push(prevSid)
 
-		return err
+			return err
+		}
 	}
 
 	// set the currently playing
@@ -456,7 +460,7 @@ func (p *Party) Previous(uid UserUUID, sid SongUID) error {
 }
 
 // Pause the song
-func (p *Party) Pause(uid UserUUID, pos uint32) error {
+func (p *Party) Pause(uid UserUUID, pos float32) error {
 	p.mux.Lock()
 	defer p.mux.Unlock()
 
@@ -531,10 +535,14 @@ func (p *Party) playSong(nsid SongUID) {
 	// get current song to add to back
 	csid := p.nowPlaying.GetCurrentlyPlaying()
 
+	havePlaying := p.nowPlaying.CurrentlyHasSong()
+
 	// now try to play the song
 	p.nowPlaying.ChangeSong(nsid)
 
-	p.previous.Push(csid)
+	if havePlaying {
+		p.previous.Push(csid)
+	}
 
 	// finally update state
 	p.setUpdated()
@@ -546,11 +554,21 @@ func (p *Party) doPlayNextSong() error {
 
 	nsid, err := p.doGetNextSongToPlay()
 
+	// if nil then we couldn't pull a song out of a queue
+	// close anything currently playing
 	if err != nil {
+
 		// TODO: may be out of songs, check to go to radio
+		if !p.nowPlaying.CurrentlyHasSong() {
+			return fmt.Errorf("no songs to play, nothing to skip")
+		}
+
+		// need to add current to previous
+		p.previous.Push(p.nowPlaying.GetCurrentlyPlaying())
 
 		// bad pop, but current song is still over, so we update
 		p.nowPlaying.SetNonePlaying()
+
 		p.setUpdated()
 
 		// return error

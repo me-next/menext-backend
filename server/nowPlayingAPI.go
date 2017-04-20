@@ -24,9 +24,8 @@ func (s *Server) Seek(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// try to parse the int
-	// this should just be a 32
-	seekPosition, err := strconv.ParseUint(seekPositionStr, 10, 32)
+	// try to parse the float
+	seekPosition, err := strconv.ParseFloat(seekPositionStr, 32)
 	if err != nil {
 		errMsg := jsonError("failed to parse seek position")
 		w.WriteHeader(http.StatusInternalServerError)
@@ -46,7 +45,7 @@ func (s *Server) Seek(w http.ResponseWriter, r *http.Request) {
 
 	// try to seek
 	// error could be from invalid user or bad seek
-	err = p.Seek(party.UserUUID(uidStr), uint32(seekPosition))
+	err = p.Seek(party.UserUUID(uidStr), float32(seekPosition))
 	if err != nil {
 		errMsg := jsonError("%s", err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
@@ -262,9 +261,8 @@ func (s *Server) Pause(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// try to parse the int
-	// this should just be a 32
-	pos, err := strconv.ParseUint(posStr, 10, 32)
+	// try to parse the float
+	pos, err := strconv.ParseFloat(posStr, 32)
 	if err != nil {
 		errMsg := jsonError("failed to parse position")
 		w.WriteHeader(http.StatusInternalServerError)
@@ -284,7 +282,7 @@ func (s *Server) Pause(w http.ResponseWriter, r *http.Request) {
 
 	// try to pause
 	// err could be bad uid or song state not changing
-	err = p.Pause(party.UserUUID(uidStr), uint32(pos))
+	err = p.Pause(party.UserUUID(uidStr), float32(pos))
 	if err != nil {
 		errMsg := jsonError("%s", err.Error())
 		w.WriteHeader(http.StatusInternalServerError)

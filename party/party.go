@@ -337,6 +337,11 @@ func (p *Party) PlayNow(uid UserUUID, sid SongUID) error {
 		return fmt.Errorf("user can't play-next")
 	}
 
+	// try to remove from the queues
+	// don't do anything on error case
+	p.removeFromSuggestions(sid)
+	p.playNext.Remove(sid)
+
 	// play song now
 	p.playSong(sid)
 

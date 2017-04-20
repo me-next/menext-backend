@@ -36,6 +36,7 @@ func (u User) Data() interface{} {
 // user permissions
 const (
 	UserCanSeekPermission           = "Seek"
+	UserCanSkipPermission           = "Skip"
 	UserCanVoteSuggestionPermission = "SuggestVote"
 	UserCanSuggestSongPermission    = "Suggest"
 	UserCanChangeVolumePermission   = "Volume"
@@ -52,6 +53,7 @@ var (
 		UserCanChangeVolumePermission:   "Users can change the music volume",
 		UserCanPlayPausePermission:      "Users can play and pause music",
 		UserCanPlaySongNextPermission:   "User can add a song to playnext",
+		UserCanSkipPermission:           "User can skip a song",
 	}
 )
 

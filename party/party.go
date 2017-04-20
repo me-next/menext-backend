@@ -102,6 +102,11 @@ func (p *Party) canUserPerformAction(userUUID UserUUID, action string) (bool, er
 		return false, err
 	}
 
+	// owner can do anything
+	if userUUID == p.ownerUUID {
+		return true, nil
+	}
+
 	// check the permission
 	value, has := p.permMap[action]
 	if !has {

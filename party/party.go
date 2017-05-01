@@ -102,6 +102,11 @@ func (p *Party) canUserPerformAction(userUUID UserUUID, action string) (bool, er
 		return false, err
 	}
 
+	// owner can do anything
+	if userUUID == p.ownerUUID {
+		return true, nil
+	}
+
 	// check the permission
 	value, has := p.permMap[action]
 	if !has {
@@ -267,6 +272,7 @@ func (p *Party) PlayNext(uid UserUUID, sid SongUID) error {
 	p.mux.Lock()
 	defer p.mux.Unlock()
 
+	// permission checked in doAdd function
 	if err := p.doAddToPlayNext(uid, sid); err != nil {
 		return err
 	}
@@ -330,6 +336,11 @@ func (p *Party) PlayNow(uid UserUUID, sid SongUID) error {
 	} else if !can {
 		return fmt.Errorf("user can't play-next")
 	}
+
+	// try to remove from the queues
+	// don't do anything on error case
+	p.removeFromSuggestions(sid)
+	p.playNext.Remove(sid)
 
 	// play song now
 	p.playSong(sid)
@@ -416,6 +427,11 @@ func (p *Party) Skip(uid UserUUID, sid SongUID) error {
 	defer p.mux.Unlock()
 
 	// TODO: check that they are on the actual current end song
+	if can, err := p.canUserPerformAction(uid, UserCanSkipPermission); err != nil {
+		return err
+	} else if !can {
+		return fmt.Errorf("user doesn't have permission to skip")
+	}
 
 	// play next song if there is one. This will update if there is a state change
 	return p.doPlayNextSong()
@@ -426,8 +442,12 @@ func (p *Party) Previous(uid UserUUID, sid SongUID) error {
 	p.mux.Lock()
 	defer p.mux.Unlock()
 
-	// TODO: check permissions
 	// TODO: check actual song
+	if can, err := p.canUserPerformAction(uid, UserCanSkipPermission); err != nil {
+		return err
+	} else if !can {
+		return fmt.Errorf("user doesn't have permission to skip")
+	}
 
 	// get the most recent song
 	prevSid, err := p.previous.Pop()

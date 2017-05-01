@@ -120,6 +120,7 @@ func (np NowPlaying) Data() interface{} {
 		data[KPlaying] = np.playing
 	} else {
 		data[KHasSong] = false
+		data[KVolume] = np.volume
 	}
 
 	return data

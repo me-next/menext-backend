@@ -409,7 +409,7 @@ func (s *Server) GetAPI() http.Handler {
 
 	// permissions
 	router.Path("/permissions").HandlerFunc(s.Permissions).Methods("GET")
-	router.Path("/setPermission/{pid}/{uid}/{perm}/{val}").HandlerFunc(s.Permissions).Methods("GET")
+	router.Path("/setPermission/{pid}/{uid}/{perm}/{val}").HandlerFunc(s.SetPermissions).Methods("GET")
 
 	// nowPlaying
 	router.Path("/seek/{pid}/{uid}/{pos}").HandlerFunc(s.Seek).Methods("GET")
